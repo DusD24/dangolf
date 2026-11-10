@@ -1,6 +1,7 @@
 import { CLUBS } from './clubs.js';
 import { COURSE, surfaceAt } from './course.js';
-import { BALL_RADIUS, METERS_PER_YARD, TEE_X } from './practice.js';
+import { HOLE_MANA_RECOVERY, manaRecovery, MAX_MANA, SPELL_MANA_COST } from './mana.js';
+import { BALL_RADIUS, carryFromLie, METERS_PER_YARD, TEE_X } from './practice.js';
 
 export const CLUB_NAMES = Object.fromEntries(Object.entries(CLUBS).map(([id, club]) => [id, club.name]));
 
@@ -18,6 +19,7 @@ export class Round {
     this.holes = holes;
     this.index = 0;
     this.card = [];
+    this.mana = MAX_MANA;
     this.teeOff();
   }
 
@@ -39,11 +41,14 @@ export class Round {
     this.notice = '';
     this.landing = null;
     this.previous = null;
+    this.attemptedSpell = false;
+    this.manaRecovered = 0;
     this.setAim(this.atTee ? this.hole.target : this.hole.pin);
     const yards = this.remaining / METERS_PER_YARD;
+    const club = Object.entries(CLUBS).findLast(([, profile]) =>
+      (profile.carry?.[1] ?? 0) * carryFromLie(this.surface) * 1.04 >= yards)?.[0] ?? 'driver';
     this.club = this.surface === 'green' ? 'putter' : this.surface === 'sand' && yards < 95 ? 'sand' :
-      yards <= 36 ? 'pitch' : yards <= 88 ? 'gap' : yards <= 119 ? 'wedge' : yards <= 141 ? 'iron9' :
-      yards <= 160 ? 'iron7' : yards <= 185 ? 'iron5' : yards <= 210 ? 'hybrid4' : 'driver';
+      club;
     this.configure(practice);
   }
 
@@ -82,8 +87,14 @@ export class Round {
     return { x: TEE_X + dx * x + dz * z, z: -dx * z + dz * x };
   }
 
-  startShot() {
-    if (this.status !== 'ready') return false;
+  canCast() {
+    return this.mana >= SPELL_MANA_COST;
+  }
+
+  startShot(attemptedSpell = false) {
+    if (this.status !== 'ready' || (attemptedSpell && !this.canCast())) return false;
+    this.attemptedSpell = attemptedSpell;
+    if (attemptedSpell) this.mana -= SPELL_MANA_COST;
     this.strokes++;
     this.previous = { ...this.lie, y: BALL_RADIUS };
     this.status = 'playing';
@@ -120,6 +131,10 @@ export class Round {
   }
 
   endShot(practice, lie) {
+    const miscast = this.attemptedSpell && !practice.spell;
+    const recovery = this.notice || miscast ? 0 : manaRecovery(practice.spell, practice.impact);
+    this.manaRecovered = Math.min(MAX_MANA - this.mana, recovery);
+    this.mana += this.manaRecovered;
     this.landing = { ...lie };
     this.status = 'shot-over';
     practice.ball.vx = 0;
@@ -135,6 +150,7 @@ export class Round {
         return;
       }
       this.index++;
+      this.mana = Math.min(MAX_MANA, this.mana + HOLE_MANA_RECOVERY);
       this.teeOff();
     } else if (this.status === 'shot-over') {
       this.lie = this.landing;

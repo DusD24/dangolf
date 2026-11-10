@@ -1,21 +1,22 @@
 import { TEE_X } from './practice.js';
 
 export function shotCue(practice) {
-  const { phase, impact, turfAt, spell } = practice;
+  const { phase, impact, contact, turfAt, spell } = practice;
   const rune = spell?.type ?? null;
-  if (turfAt !== null && (!impact || turfAt <= impact.at)) {
+  if (impact?.kind === 'top') return { base: 'top', rune, success: false, blast: false };
+  if (impact?.kind === 'chunk' || (turfAt !== null && (!impact || turfAt <= impact.at))) {
     return { base: 'turf', rune, success: false, blast: false };
   }
   if (impact?.putt) return { base: 'putt', rune: null, success: true, blast: false };
   if (impact) {
-    const blast = rune === 'star' && impact.spellEnergy >= 1.25;
+    const blast = rune === 'star' && !spell.guided && spell.potency >= .985;
     const clean = Math.abs(practice.steer) < 0.22 &&
-      (practice.castLabel === 'Clean snap' || (spell?.purity ?? 0) >= 0.86);
+      (impact.snapQuality >= .65 || practice.castLabel === 'Clean snap' || (spell?.purity ?? 0) >= 0.86);
     const cue = { base: blast || clean || impact.pure ? 'pure' : 'strike', rune, success: true, blast };
     if (impact.pure) cue.celebrate = true;
     return cue;
   }
-  if (phase === 'result' || (phase === 'swing' && practice.club.x > TEE_X + 0.15)) {
+  if (phase === 'result' || (phase === 'swing' && !contact && practice.club.x > TEE_X + 0.15)) {
     return { base: 'whiff', rune, success: false, blast: false };
   }
   return null;
@@ -99,6 +100,12 @@ function baseSound(context, out, at, base) {
     noise(context, out, at, 1280, 240, .19, .61);
     noise(context, out, at + .048, 930, 390, .095, .23);
     noise(context, out, at + .105, 1500, 510, .085, .12);
+    return;
+  }
+  if (base === 'top') {
+    noise(context, out, at, 4250, 1740, .040, .38, { q: 1.4 });
+    tone(context, out, at + .002, 1970, 1030, .051, .23, 'triangle');
+    noise(context, out, at + .024, 1120, 445, .089, .16, { attack: .012 });
     return;
   }
   if (base === 'strike') {

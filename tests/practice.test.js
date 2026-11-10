@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { Practice, STEP } from '../public/src/practice.js';
+import { METERS_PER_YARD, Practice, STEP } from '../public/src/practice.js';
 
 function startSwing(practice, depth = 0.44, drift = 0) {
   practice.beginStroke(0.5, 0.3);
@@ -67,46 +67,79 @@ test('a badly crooked swipe can miss without moving the ball', () => {
   assert.equal(practice.phase, 'result');
 });
 
-test('casting at the club cue adds real strike speed and lift', () => {
+test('centered contact adds a modest carry bonus and lift', () => {
+  const plain = new Practice();
+  const centered = new Practice();
+  startSwing(plain, .45);
+  startSwing(centered, .45);
+  while (!centered.contact) centered.step();
+  assert.ok(centered.snapCue);
+  assert.equal(centered.impact, null);
+  assert.ok(centered.snap());
+  assert.equal(centered.snap(), false);
+  simulate(plain, 8);
+  simulate(centered, 8);
+  assert.equal(centered.impact.snapQuality, 1);
+  assert.ok(centered.carry > plain.carry * 1.10 && centered.carry < plain.carry * 1.18);
+  assert.ok(centered.impact.launchY > plain.impact.launchY);
+});
+
+test('a chunk pops up and rough gives it more escape distance than fairway', () => {
+  const results = ['fairway', 'rough'].map(surface => {
+    const practice = new Practice();
+    practice.configure('driver', () => surface);
+    startSwing(practice, .45);
+    simulate(practice, .15);
+    assert.ok(practice.snap());
+    let peak = 0;
+    for (let step = 0; step < 8 / STEP; step++) {
+      practice.step();
+      peak = Math.max(peak, practice.ball.y);
+    }
+    assert.equal(practice.impact.kind, 'chunk');
+    assert.ok(practice.turfAt !== null);
+    assert.ok(peak > 2);
+    return practice.distance / METERS_PER_YARD;
+  });
+  assert.ok(results[0] >= 2 && results[0] <= 5);
+  assert.ok(results[1] > results[0] * 2 && results[1] < 13);
+});
+
+test('a near snap keeps stock carry, while a top rolls on fairway and dies in rough', () => {
+  function tapAfterContact(surface, delay) {
+    const practice = new Practice();
+    practice.configure('driver', () => surface);
+    startSwing(practice, .45);
+    while (!practice.contact) practice.step();
+    simulate(practice, delay);
+    assert.ok(practice.snap());
+    simulate(practice, 8);
+    return practice;
+  }
+  const near = tapAfterContact('fairway', 5 * STEP);
+  assert.equal(near.castLabel, 'Near snap');
+  assert.ok(near.carry / METERS_PER_YARD >= 180 && near.carry / METERS_PER_YARD <= 220);
+  const fairway = tapAfterContact('fairway', 10 * STEP);
+  const rough = tapAfterContact('rough', 10 * STEP);
+  for (const shot of [fairway, rough]) {
+    assert.equal(shot.impact.kind, 'top');
+    assert.equal(shot.impact.launchY, 0);
+    assert.equal(shot.carry, 0);
+  }
+  assert.ok(fairway.distance / METERS_PER_YARD > 60);
+  assert.ok(rough.distance / .3048 >= 10 && rough.distance / .3048 <= 15);
+});
+
+test('a tap after the contact window cannot alter a launched shot', () => {
   const baseline = new Practice();
   const cast = new Practice();
   startSwing(baseline);
   startSwing(cast);
-  for (let i = 0; i < 120 && !cast.snapCue; i++) cast.step();
-  assert.ok(cast.snapCue);
-  assert.equal(cast.impact, null);
-  assert.ok(cast.snap());
-  assert.equal(cast.snap(), false);
-  simulate(baseline, 1.5);
-  simulate(cast, 1.5);
-  assert.ok(cast.impact.speed > baseline.impact.speed * 1.35);
-  assert.ok(cast.impact.launchY > baseline.impact.launchY);
-});
-
-test('an early snap can dig into the turf and spoil the strike', () => {
-  const early = new Practice();
-  const clean = new Practice();
-  startSwing(early);
-  startSwing(clean);
-  simulate(early, 0.09);
-  assert.ok(early.snap());
-  simulate(early, 1.4);
-  simulate(clean, 1.4);
-  assert.ok(early.turfAt !== null);
-  assert.ok(!early.impact || early.impact.speed < clean.impact.speed);
-});
-
-test('a snap after contact leaves the launched ball on the same path', () => {
-  const baseline = new Practice();
-  const cast = new Practice();
-  startSwing(baseline);
-  startSwing(cast);
-  for (let i = 0; i < 120 && !cast.impact; i++) {
+  while (!cast.impact) {
     cast.step();
     baseline.step();
   }
-  assert.ok(cast.impact);
-  assert.ok(cast.snap());
+  assert.equal(cast.snap(), false);
   simulate(cast, 1.5);
   simulate(baseline, 1.5);
   assert.deepEqual(cast.ball, baseline.ball);
@@ -135,7 +168,7 @@ test('the best straight snap timing is inside the visible cue', () => {
       assert.ok(startSwing(practice, depth));
       simulate(practice, tapStep * STEP);
       const atCue = practice.snapCue;
-      assert.ok(practice.snap());
+      practice.snap();
       simulate(practice, 8);
       if (!best || practice.distance > best.distance) {
         best = { atCue, distance: practice.distance, tapStep };
@@ -144,6 +177,16 @@ test('the best straight snap timing is inside the visible cue', () => {
     assert.ok(best.atCue, 'Longest shot should follow the cue at pull depth ' +
       depth + '. Best cast was at step ' + best.tapStep);
   }
+});
+
+test('the glint waits for the contact window on a bent return', () => {
+  const practice = new Practice();
+  startSwing(practice, .225, .085);
+  for (let i = 0; i < 120 && !practice.snapCue; i++) practice.step();
+  assert.ok(practice.snapCue);
+  assert.ok(practice.snap());
+  simulate(practice, 1);
+  assert.equal(practice.impact?.snapQuality, 1);
 });
 
 test('an early snap at the start of a shallow stroke weakens contact', () => {
@@ -171,22 +214,4 @@ test('a pull past the old power cap still loads more power', () => {
   practice.moveStroke(0.5, 0.65);
   assert.ok(practice.releaseStroke(0.5, 0.2));
   assert.ok(practice.charge >= 0.99);
-});
-
-test('a full straight clean snap carries driver distance before rolling out', () => {
-  const plain = new Practice();
-  const clean = new Practice();
-  startSwing(plain, 0.45);
-  startSwing(clean, 0.45);
-  simulate(clean, 38 * STEP);
-  assert.ok(clean.snapCue);
-  assert.ok(clean.snap());
-
-  simulate(plain, 10);
-  simulate(clean, 10);
-  const carryYards = clean.carry / 0.9144;
-  const totalYards = clean.distance / 0.9144;
-  assert.ok(carryYards >= 235 && carryYards <= 265, 'Carry was ' + carryYards + ' yd');
-  assert.ok(totalYards > carryYards && totalYards < carryYards + 40, 'Total was ' + totalYards + ' yd');
-  assert.ok(plain.carry < clean.carry * 0.55);
 });

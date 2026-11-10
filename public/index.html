@@ -23,7 +23,10 @@
         <div><dt>Total</dt><dd id="distance">—</dd></div>
         <div id="pin-stat" hidden><dt>To pin</dt><dd id="to-pin">—</dd></div>
       </dl>
-      <p id="hole-info" class="eyebrow" hidden></p>
+      <div class="course-summary">
+        <p id="hole-info" class="eyebrow" hidden></p>
+        <p id="mana-stat" class="eyebrow" aria-live="polite" hidden>Mana <strong id="mana-value"></strong></p>
+      </div>
       <figure class="mini-course" id="mini-course" hidden>
         <canvas id="mini-map" aria-label="Live overhead view of the ball, flag and hazards"></canvas>
         <figcaption id="mini-caption">Hole map</figcaption>
@@ -55,16 +58,19 @@
         <form method="dialog"><button aria-label="Close equipment" value="close">Close</button></form>
       </div>
       <section id="spellbook" hidden>
-        <p class="panel-note">Choose the rune you want to trace.</p>
-        <div class="rune-grid" id="rune-grid"></div>
+        <p class="panel-note" id="spellbook-note"></p>
+        <div class="spell-loadout" id="spell-loadout" role="group" aria-label="Equipped rune slots"></div>
+        <p class="panel-note" id="spellbook-mana"></p>
+        <div class="rune-grid" id="rune-grid" role="group" aria-label="Rune catalog"></div>
       </section>
       <section id="club-bag" hidden>
         <div class="club-grid" id="club-grid" aria-label="Fourteen clubs"></div>
         <div class="range-card">
           <div class="range-heading"><strong id="bag-selected"></strong><span id="bag-metric"></span></div>
-          <p class="panel-note">Flat range estimates. Spells and the lie change yardage.</p>
+          <p class="panel-note" id="bag-range-note">Flat range estimates.</p>
           <table>
-            <thead><tr><th scope="col">Power</th><th scope="col">Plain</th><th scope="col">Centered snap</th></tr></thead>
+            <thead><tr><th scope="col">Power</th><th scope="col">Plain</th><th scope="col">Snap</th>
+              <th scope="col" data-spell-range>Pure</th><th scope="col" data-spell-range>Pure + snap</th></tr></thead>
             <tbody id="bag-ranges"></tbody>
           </table>
         </div>
@@ -88,6 +94,7 @@
               <span class="key-ball">Ball</span><span class="key-pin">Pin</span>
               <span class="key-water">Water</span><span class="key-sand">Bunker</span>
               <span class="key-stock" data-plan>Plain</span><span class="key-snap" data-plan>Snap</span>
+              <span class="key-spell" data-plan>Pure</span><span class="key-spell-snap" data-plan>Pure + snap</span>
             </div>
             <p id="map-hazards" class="chart-hazards" data-plan></p>
           </div>
@@ -100,7 +107,7 @@
               <tbody id="map-ranges"></tbody>
             </table>
             <p id="map-landing" class="chart-hazards" data-plan></p>
-            <p class="panel-note">Estimates from this lie. Spells and strike timing can change distance.</p>
+            <p class="panel-note" id="map-range-note"></p>
           </aside>
           <p id="map-tip" class="panel-note"></p>
         </div>

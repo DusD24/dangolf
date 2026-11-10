@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { COURSE, surfaceAt } from '../public/src/course.js';
+import { MAX_MANA, SPELL_MANA_COST } from '../public/src/mana.js';
 import { Round } from '../public/src/round.js';
 import { BALL_RADIUS, Practice, STEP } from '../public/src/practice.js';
 
@@ -15,20 +16,63 @@ test('Moonfen has nine playable tees and pins with the approved par mix', () => 
   }
 });
 
-function playShot(round, practice, { putt, load = 0.85 } = {}) {
+function playShot(round, practice, { putt, load = 0.85, spell = null, attempted = Boolean(spell), snap } = {}) {
   if (putt !== undefined) practice.putt(putt);
   else {
     practice.beginStroke(.5, .3);
     practice.moveStroke(.5, .3 + .45 * load);
-    assert.ok(practice.releaseStroke(.5, .3));
+    assert.ok(practice.releaseStroke(.5, .3, spell));
   }
-  assert.ok(round.startShot());
+  assert.ok(round.startShot(attempted));
   for (let i = 0; i < 15 / STEP && round.status === 'playing'; i++) {
+    if (practice.castAt === null && ((snap === 'center' && practice.contact && practice.snapCue) ||
+        (snap === 'early' && practice.elapsed > .15))) practice.snap();
     practice.step();
     round.track(practice);
   }
   assert.notEqual(round.status, 'playing');
 }
+
+test('all three spells spend the same mana and two 80% casts block another', () => {
+  for (const type of ['star', 'crescent', 'spear']) {
+    const round = new Round();
+    const practice = new Practice();
+    round.prepare(practice);
+    for (let i = 1; i <= 2; i++) {
+      playShot(round, practice, { load: .35, spell: { type, purity: .80, potency: .80, direction: 1 } });
+      assert.equal(round.mana, MAX_MANA - i * SPELL_MANA_COST);
+      round.next(practice);
+    }
+    assert.equal(round.canCast(), false);
+    assert.equal(round.startShot(true), false);
+    assert.equal(round.strokes, 2);
+    playShot(round, practice, { load: .35, snap: 'center' });
+    assert.equal(round.mana, 38);
+    round.next(practice);
+    playShot(round, practice, { load: .35 });
+    assert.equal(round.canCast(), true);
+  }
+});
+
+test('pure spells recover the same mana, while chunks and miscasts spend the full cost', () => {
+  const play = (type, snap, attempted = true) => {
+    const round = new Round();
+    const practice = new Practice();
+    round.prepare(practice);
+    const spell = type ? { type, purity: 1, potency: 1, direction: 1 } : null;
+    playShot(round, practice, { load: .35, spell, attempted, snap });
+    const mana = round.mana;
+    round.track(practice);
+    assert.equal(round.mana, mana);
+    return mana;
+  };
+  for (const type of ['star', 'crescent', 'spear']) {
+    assert.equal(play(type), 80);
+    assert.equal(play(type, 'center'), 90);
+    assert.equal(play(type, 'early'), 60);
+  }
+  assert.equal(play(null), 60);
+});
 
 test('the next swing starts from the settled lie and keeps the stroke count', () => {
   const round = new Round();

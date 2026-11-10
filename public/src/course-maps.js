@@ -1,4 +1,5 @@
 import { CLUBS } from './clubs.js';
+import { surfaceAt } from './course.js';
 import { hazardsOnAim, landingOnAim } from './course-map.js';
 import { drawHoleMap } from './course-view.js';
 import { METERS_PER_YARD } from './practice.js';
@@ -7,6 +8,8 @@ import { POWER_MARKS, shotRanges } from './range-card.js';
 const labels = { fairway: 'Fairway', rough: 'Rough', green: 'Green', water: 'Water', sand: 'Bunker', out: 'Out of bounds' };
 const stockColor = '#b8f2dc';
 const snapColor = '#dcb1ff';
+const spellColor = '#f4d094';
+const spellSnapColor = '#9dc8ff';
 const yards = meters => Math.round(meters / METERS_PER_YARD) + ' yd';
 const feet = meters => Math.round(meters / .3048) + ' ft';
 const closeDistance = meters => meters < 12 ? feet(meters) : yards(meters);
@@ -27,7 +30,7 @@ function makeButton(text, title, action) {
   return button;
 }
 
-export function createCourseMaps({ dialog, equipClub, setAim }) {
+export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
   const get = id => document.getElementById(id);
   const mini = get('mini-course');
   const miniCanvas = get('mini-map');
@@ -76,12 +79,15 @@ export function createCourseMaps({ dialog, equipClub, setAim }) {
 
   function renderRanges() {
     const putter = round.club === 'putter';
-    const ranges = shotRanges(round.club, round.surface);
+    const { rune, mode } = selectedSpell();
+    const ranges = shotRanges(round.club, round.surface, rune, mode);
     const display = putter ? feet : yards;
     const selected = ranges.find(row => row.power === power);
     get('map-club-name').textContent = CLUBS[round.club].name;
     get('map-metric').textContent = (putter ? 'Roll · ft' : 'Carry · yd') + ' · ' +
       (round.atTee ? 'Tee' : labels[round.surface]);
+    get('map-range-note').textContent = putter ? 'Estimates from this lie.' :
+      'Pure uses ' + rune.name + ' at 100% purity in ' + (mode === 'guided' ? 'Guided' : 'Hard') + '.';
 
     for (const [id, button] of clubs) {
       button.setAttribute('aria-pressed', String(id === round.club));
@@ -90,8 +96,10 @@ export function createCourseMaps({ dialog, equipClub, setAim }) {
 
     const rows = get('map-ranges');
     rows.replaceChildren();
-    const modes = putter ? [['Roll', 'stock', stockColor]] :
-      [['Plain', 'stock', stockColor], ['Snap', 'snap', snapColor]];
+    const modes = putter ? [['Roll', 'stock', stockColor]] : [
+      ['Plain', 'stock', stockColor], ['Snap', 'snap', snapColor],
+      ['Pure', 'spell', spellColor], ['Pure + snap', 'spellSnap', spellSnapColor],
+    ];
     for (const [name, key] of modes) {
       const row = rows.insertRow();
       const heading = document.createElement('th');
@@ -104,7 +112,12 @@ export function createCourseMaps({ dialog, equipClub, setAim }) {
         cell.classList.toggle('picked', item.power === power);
       }
     }
-    return modes.map(([name, key, color]) => ({ name, color, ...landingOnAim(round, selected[key]) }));
+    return modes.map(([name, key, color]) => {
+      const landing = selected[key + 'Landing'];
+      if (!landing) return { name, color, ...landingOnAim(round, selected[key]) };
+      const point = round.worldPoint(landing);
+      return { name, color, point, surface: surfaceAt(round.hole, point) };
+    });
   }
 
   function renderPlanner() {
@@ -114,6 +127,8 @@ export function createCourseMaps({ dialog, equipClub, setAim }) {
     for (const detail of planDetails) detail.hidden = !ready;
     map.querySelector('.key-stock').textContent = putter ? 'Roll' : 'Plain';
     map.querySelector('.key-snap').hidden = !ready || putter;
+    map.querySelector('.key-spell').hidden = !ready || putter;
+    map.querySelector('.key-spell-snap').hidden = !ready || putter;
     aimAtPin.hidden = !ready;
     get('map-target-wrap').hidden = !ready;
     get('map-target').textContent = closeDistance(distance(round.lie, round.aimTarget));

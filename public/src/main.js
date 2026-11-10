@@ -2,6 +2,7 @@ import { createShotAudio, shotCue } from './audio.js';
 import { COURSE_NAME } from './course.js';
 import { createGear } from './gear.js';
 import { createCourseMaps } from './course-maps.js';
+import { SPELL_MANA_COST } from './mana.js';
 import { Round } from './round.js';
 import { BALL_RADIUS, FULL_PULL, METERS_PER_YARD, Practice, PUTT_PULL, STEP } from './practice.js';
 import { drawScene } from './scene.js';
@@ -37,6 +38,7 @@ const gear = createGear({ equip: equipClub, changeSpell: resetReadyShot });
 const courseMaps = createCourseMaps({
   dialog, equipClub,
   setAim: target => practice.phase === 'ready' && round?.setAim(target),
+  selectedSpell: () => ({ rune: gear.rune, mode: gear.mode }),
 });
 let width = 0;
 let height = 0;
@@ -44,6 +46,7 @@ let pointer = null;
 let points = [];
 let pullStarted = false;
 let unrecognized = false;
+let spellNotice = '';
 let soundedShot = false;
 let soundedSwing = false;
 let soundedCup = false;
@@ -103,6 +106,7 @@ function reset() {
   practice.reset();
   flight.length = 0;
   unrecognized = false;
+  spellNotice = '';
   soundedShot = false;
   soundedSwing = false;
   soundedCup = false;
@@ -171,6 +175,7 @@ canvas.addEventListener('pointerup', event => {
   advance(performance.now());
   const dot = moveStroke(event, true);
   let launched = false;
+  let castAttempted = false;
   if (practice.clubType === 'putter') {
     if (practice.charge >= .035) {
       practice.putt(practice.charge);
@@ -180,10 +185,21 @@ canvas.addEventListener('pointerup', event => {
     }
   } else {
     const result = analyzeStroke(points, gear.mode, gear.rune.id);
-    launched = practice.releaseStroke(dot.x, dot.y, result.spell);
-    unrecognized = launched && result.attempted && !result.spell;
+    let spell = result.spell;
+    if (spell && !gear.hasRune(spell.id)) {
+      spellNotice = spell.name + ' needs an equipped slot.';
+      spell = null;
+    } else if (result.attempted && round && !round.canCast()) {
+      spellNotice = 'Casting requires ' + SPELL_MANA_COST + ' mana.';
+      spell = null;
+    } else {
+      castAttempted = result.attempted;
+    }
+    launched = practice.releaseStroke(dot.x, dot.y, spell);
+    unrecognized = launched && result.attempted && !result.spell && !spellNotice;
+    if (unrecognized && round) spellNotice = 'Miscast · ' + SPELL_MANA_COST + ' mana spent.';
   }
-  if (launched) round?.startShot();
+  if (launched) round?.startShot(castAttempted);
   clearInput();
 });
 
@@ -289,7 +305,7 @@ const lieLabels = { fairway: 'Fairway', green: 'Green', rough: 'Rough', sand: 'B
 
 function updateCourse() {
   spellTools.hidden = practice.clubType === 'putter';
-  gear.update(practice.clubType, pointer === null && (!round || round.status === 'ready'));
+  gear.update(practice.clubType, pointer === null && (!round || round.status === 'ready'), round?.mana ?? null);
   holeInfo.hidden = !round;
   pinStat.hidden = !round;
   holeMapButton.hidden = !round;
@@ -320,15 +336,14 @@ function updateCourse() {
 function spellResult() {
   const { spell, impact, turfAt, castLabel } = practice;
   const purity = Math.round(spell.purity * 100) + '% purity';
+  if (impact?.kind === 'top') return [spell.name + ' · Topped', purity + ' · Tap closer to contact.'];
   if (turfAt !== null && (!impact || turfAt <= impact.at)) {
-    return [spell.name + ' · Turf strike', purity + ' · Keep the return straighter.'];
+    return [spell.name + ' · Chunked', purity + ' · The club dug into the turf.'];
   }
   if (!impact) return [spell.name + ' · Whiff', purity + ' · Keep the return straighter.'];
 
   const details = [];
-  if (spell.type === 'star') details.push(Math.floor(impact.spellEnergy * 100 + 1e-8) + '% power');
-  if (impact.snapEnergy > 1) details.push('Snap +' + Math.round((impact.snapEnergy - 1) * 100) + '% energy');
-  else if (castLabel) details.push(castLabel);
+  if (castLabel) details.push(castLabel);
   const scores = [
     [spell.geometry, 'Trace the shape more closely.'],
     [spell.pace, 'Draw the rune a little faster.'],
@@ -347,27 +362,30 @@ function updateFeedback() {
   if (practice.phase === 'drawing') {
     title = pullStarted ? 'Loading the swing' : 'Drawing the spell';
     hint = pullStarted ? 'Swipe straight back up and lift.' : 'Draw the rune and flow into the pull.';
-  } else if (practice.phase === 'swing') {
+  } else if (practice.phase === 'swing' && !practice.impact) {
     title = practice.spell ? practice.spell.name + ' released' : 'Downswing';
-    hint = practice.spell ? 'Tap just before contact for a bonus.' : 'Tap just before the head reaches the ball.';
-  } else if (practice.phase === 'result') {
+    hint = 'Tap at contact for a bonus.';
+  } else if (practice.phase === 'result' || practice.impact) {
     if (practice.spell) {
       [title, hint] = spellResult();
-    } else if (practice.castLabel === 'Early cast' && practice.turfAt !== null) {
-      title = 'Early cast · Turf strike';
-      hint = 'Wait for the club to get closer before tapping.';
+    } else if (practice.impact?.kind === 'chunk') {
+      title = 'Chunked';
+      hint = practice.castLabel === 'Early snap' ? 'Tap closer to contact.' : 'The club dug into the turf.';
+    } else if (practice.impact?.kind === 'top') {
+      title = 'Topped';
+      hint = round?.surface === 'rough' ? 'The rough stopped the rollout.' : 'Late tap sent the ball out low with topspin.';
     } else if (!practice.impact) {
       title = practice.turfAt === null ? 'Whiff' : 'Turf strike';
       hint = 'Try a straighter return to bring the head through.';
     } else if (practice.castLabel === 'Clean snap') {
       title = 'Clean snap';
-      hint = 'The tether whipped the club through the ball.';
+      hint = 'Centered contact added carry.';
     } else if (practice.castLabel) {
       title = practice.castLabel;
-      hint = 'Tap as the club head closes in on the ball.';
+      hint = 'Tap closer to contact.';
     } else {
       title = 'Plain strike';
-      hint = unrecognized ? 'Rune unrecognized. Practice the shape in Guided.' : 'A snap just before impact adds power.';
+      hint = unrecognized ? 'Rune unrecognized. Practice the shape in Guided.' : 'Tap at contact to add carry.';
     }
   }
 
@@ -394,6 +412,9 @@ function updateFeedback() {
       title = round.hole.name;
     }
   }
+
+  if (spellNotice && (practice.phase === 'swing' || practice.phase === 'result')) hint = spellNotice + ' ' + hint;
+  if (round?.manaRecovered > 0) hint += ' · +' + round.manaRecovered + ' mana';
 
   header.classList.toggle('pure-strike', Boolean(practice.impact?.pure));
   show(phase, title);

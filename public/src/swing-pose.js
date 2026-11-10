@@ -95,11 +95,12 @@ function clubSwing(practice) {
     return { pose: loaded, setup };
   }
 
-  // The snap accelerates contact. The golfer then turns to a balanced finish
-  // on their own clock, including when the staff misses the ball.
+  // Hold the contact pose while the tap can still determine the strike.
+  const release = practice.contact ? (practice.impact?.at ?? practice.elapsed) : practice.clubPassedAt;
+  const hold = practice.contact ? 1 - smooth(clamp((practice.elapsed - release) / .10)) : 0;
   const through = practice.clubPassedAt === null
     ? .60 * clamp((angle - startAngle) / (SWING_PASS_ANGLE - startAngle))
-    : .60 + .40 * clamp((practice.elapsed - practice.clubPassedAt + STEP / 2) / (.36 + .07 * charge)) *
+    : .60 + .40 * clamp((practice.elapsed - release + STEP / 2) / (.36 + .07 * charge)) *
       (.60 + .40 * charge);
   const size = .46 + .54 * charge;
   const track = [
@@ -107,18 +108,21 @@ function clubSwing(practice) {
     [.75, extension], [.88, wrap], [1, finish],
   ];
   const { x, y, z } = practice.club;
+  const heldClub = practice.contact?.club ?? practice.club;
+  const head = [mix(x, heldClub.x, hold), mix(y, heldClub.y, hold), mix(z, heldClub.z, hold)];
+  const visualAngle = mix(angle, practice.contact?.angle ?? angle, hold);
   // Match the simulated head through the hitting zone, then ease into the follow-through.
-  const entering = smooth(clamp((angle + .46) / .43));
-  const leaving = 1 - smooth(clamp((angle - .24) / .45));
+  const entering = smooth(clamp((visualAngle + .46) / .43));
+  const leaving = 1 - smooth(clamp((visualAngle - .24) / .45));
   // A wild return has no ball contact to pin the visual clubhead to. Let the
   // hand path carry more of the animation as the simulated head veers away.
   const miss = smooth(clamp((Math.abs(practice.steer) - .42) / .50));
-  const struck = practice.impact?.at === practice.elapsed;
+  const struck = practice.contact?.at === practice.elapsed;
   const contactWeight = struck ? 1 : entering * leaving * (1 - .90 * miss);
   return {
     pose: sample(track, through),
     setup: { ...setup, weight: setupWeight * (1 - smooth(clamp(through / .32))) },
-    contact: { tip: [x, y, z], weight: contactWeight },
+    contact: { tip: head, weight: contactWeight },
   };
 }
 

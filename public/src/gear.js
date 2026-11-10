@@ -1,4 +1,5 @@
 import { CLUB_HEADS, CLUBS } from './clubs.js';
+import { MAX_MANA, SPELL_MANA_COST } from './mana.js';
 import { rangeCard } from './range-card.js';
 import { RUNES } from './spells.js';
 
@@ -49,36 +50,75 @@ export function createGear({ equip, changeSpell }) {
   const title = document.querySelector('#gear-title');
   const spellbook = document.querySelector('#spellbook');
   const bag = document.querySelector('#club-bag');
+  const loadoutGrid = document.querySelector('#spell-loadout');
   const runeGrid = document.querySelector('#rune-grid');
+  const spellbookNote = document.querySelector('#spellbook-note');
+  const spellbookMana = document.querySelector('#spellbook-mana');
+  const manaStat = document.querySelector('#mana-stat');
+  const manaValue = document.querySelector('#mana-value');
   const clubGrid = document.querySelector('#club-grid');
   const bagRows = document.querySelector('#bag-ranges');
   const equipButton = document.querySelector('#equip-club');
   const modeIcon = 'M0 -11L3 -4L11 0L3 4L0 11L-3 4L-11 0L-3 -4Z M0 -5V5 M-5 0H5';
   let mode = 'guided';
-  let rune = RUNES.find(item => item.id === 'crescent-right');
+  const loadout = ['crescent-right', 'spear', 'star'].map(id => RUNES.find(rune => rune.id === id));
+  let activeSlot = 0;
+  let shownMana;
   let equipped = null;
   let preview = null;
   const clubs = new Map();
   const runes = new Map();
+  const slotButtons = loadout.map((_, index) => {
+    const button = document.createElement('button');
+    button.className = 'gear-slot';
+    button.type = 'button';
+    button.addEventListener('click', () => {
+      activeSlot = index;
+      drawSpellSlots();
+      changeSpell();
+    });
+    loadoutGrid.append(button);
+    return button;
+  });
 
   function drawSpellSlots() {
+    const rune = loadout[activeSlot];
     setSlot(modeButton, icon(modeIcon, '-14 -14 28 28'), 'Casting', mode === 'guided' ? 'Guided' : 'Hard');
     modeButton.setAttribute('aria-pressed', String(mode === 'hard'));
     setSlot(spellButton, runeIcon(rune), 'Spellbook', runeLabel(rune));
-    spellButton.hidden = mode === 'hard';
+    spellButton.setAttribute('aria-label', 'Spellbook, ' + runeLabel(rune) + ' active');
+    spellbookNote.textContent = mode === 'guided'
+      ? 'The active slot sets the trace. Tap a rune below to equip it there.'
+      : 'Draw any equipped rune. The active slot sets the planner. Tap a rune below to equip it there.';
+    for (const [index, slot] of slotButtons.entries()) {
+      const item = loadout[index];
+      setSlot(slot, runeIcon(item), 'Slot ' + (index + 1), runeLabel(item));
+      slot.setAttribute('aria-pressed', String(index === activeSlot));
+    }
+    for (const [id, { button, status }] of runes) {
+      const slot = loadout.findIndex(item => item.id === id);
+      button.setAttribute('aria-pressed', String(id === rune.id));
+      status.textContent = slot === -1 ? 'Available' : 'Equipped · Slot ' + (slot + 1);
+    }
   }
 
   function previewClub(id) {
     preview = id;
     for (const [key, button] of clubs) button.setAttribute('aria-pressed', String(key === id));
     const club = CLUBS[id];
+    const putting = id === 'putter';
+    const rune = loadout[activeSlot];
     document.querySelector('#bag-selected').textContent = club.name;
-    document.querySelector('#bag-metric').textContent = id === 'putter' ? 'Roll · yd' : 'Carry · yd';
+    document.querySelector('#bag-metric').textContent = putting ? 'Roll · yd' : 'Carry · yd';
+    document.querySelector('#bag-range-note').textContent = putting ? 'Flat range estimate.' :
+      'Pure uses ' + runeLabel(rune) + ' at 100% purity on a fairway.';
+    for (const heading of bag.querySelectorAll('[data-spell-range]')) heading.hidden = putting;
     bagRows.replaceChildren();
-    for (const row of rangeCard(id)) {
+    for (const row of rangeCard(id, rune, mode)) {
       const item = document.createElement('tr');
       item.append(textElement('th', row.power + '%'), textElement('td', row.stock),
         textElement('td', row.snap ?? '—'));
+      if (!putting) item.append(textElement('td', row.spell), textElement('td', row.spellSnap));
       bagRows.append(item);
     }
     equipButton.textContent = 'Equip ' + club.name;
@@ -89,15 +129,20 @@ export function createGear({ equip, changeSpell }) {
     button.type = 'button';
     const description = option.type === 'crescent' ? 'Bend the flight' :
       option.type === 'spear' ? 'Low running shot' : 'Extra launch power';
-    button.append(runeIcon(option), textElement('strong', runeLabel(option)), textElement('small', description));
+    const status = textElement('small', '');
+    status.className = 'rune-status';
+    button.append(runeIcon(option), textElement('strong', runeLabel(option)),
+      textElement('small', description), status);
     button.addEventListener('click', () => {
-      rune = option;
+      const slot = loadout.indexOf(option);
+      if (slot === -1) loadout[activeSlot] = option;
+      else activeSlot = slot;
       drawSpellSlots();
       dialog.close();
       changeSpell();
     });
     runeGrid.append(button);
-    runes.set(option.id, button);
+    runes.set(option.id, { button, status });
   }
 
   for (const [id, club] of Object.entries(CLUBS)) {
@@ -120,7 +165,6 @@ export function createGear({ equip, changeSpell }) {
     title.textContent = 'Spellbook';
     spellbook.hidden = false;
     bag.hidden = true;
-    for (const [id, button] of runes) button.setAttribute('aria-pressed', String(rune.id === id));
     dialog.showModal();
   });
   bagButton.addEventListener('click', () => {
@@ -137,8 +181,17 @@ export function createGear({ equip, changeSpell }) {
   drawSpellSlots();
   return {
     get mode() { return mode; },
-    get rune() { return rune; },
-    update(club, enabled) {
+    get rune() { return loadout[activeSlot]; },
+    hasRune(id) { return loadout.some(rune => rune.id === id); },
+    update(club, enabled, mana = null) {
+      if (mana !== shownMana) {
+        shownMana = mana;
+        manaStat.hidden = mana === null;
+        const balance = mana === null ? '' : mana + '/' + MAX_MANA;
+        manaValue.textContent = balance;
+        spellbookMana.textContent = (mana === null ? 'Unlimited practice mana. ' : balance + ' mana. ') +
+          'Course casts cost ' + SPELL_MANA_COST + ' mana. Purity and contact determine refunds.';
+      }
       if (club !== equipped) {
         equipped = club;
         const profile = CLUBS[club];

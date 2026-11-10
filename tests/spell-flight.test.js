@@ -46,30 +46,31 @@ test('Spear carries lower and rolls farther after landing', () => {
   assert.ok(spear.distance - spear.carry > neutral.distance - neutral.carry);
 });
 
-test('the Hard and Guided star multiply the same launch energy by 125% and 115%', () => {
-  const energies = [0, .6, 1].map(potency => {
-    const p = arm('star', { potency });
-    for (let i = 0; i < 100 && !p.impact; i++) p.step();
-    assert.ok(p.impact);
-    return p.ball.vx ** 2;
+test('a pure Star gets more carry in Hard than Guided', () => {
+  const [plain, guided, hard] = [0, .6, 1].map(potency => {
+    const shot = arm('star', { potency });
+    finish(shot);
+    return Math.round(shot.carry / METERS_PER_YARD);
   });
-  assert.ok(Math.abs(energies[1] / energies[0] - 1.15) < 0.001);
-  assert.ok(Math.abs(energies[2] / energies[0] - 1.25) < 0.001);
+  assert.equal(plain, 220);
+  assert.ok(guided > plain && guided < hard);
+  assert.equal(hard, 280);
 });
 
-test('a well-timed snap boosts a rune and an early tap preserves its release', () => {
+test('a centered snap adds carry to a pure Star, and an early tap chunks it', () => {
   const plain = arm('star');
   const early = arm('star');
   const clean = arm('star');
   assert.ok(early.snap());
-  for (let i = 0; i < 100 && !clean.snapCue; i++) clean.step();
+  while (!clean.contact) clean.step();
   assert.ok(clean.snapCue && clean.snap());
   finish(plain);
   finish(early);
   finish(clean);
-  assert.equal(early.carry, plain.carry);
-  assert.ok(clean.carry > plain.carry);
-  assert.ok(clean.impact.snapEnergy > 1 && clean.impact.snapEnergy <= 1.1);
+  assert.equal(early.impact.kind, 'chunk');
+  assert.ok(early.carry < 10);
+  assert.equal(Math.round(plain.carry / METERS_PER_YARD), 280);
+  assert.equal(Math.round(clean.carry / METERS_PER_YARD), 296);
 });
 
 test('a recognized rune can still miss without moving the ball', () => {

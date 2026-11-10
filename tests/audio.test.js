@@ -8,13 +8,13 @@ const attempt = {
 };
 
 test('a clean hit gets the driver crack and a max star adds the blast and rune layer', () => {
-  const impact = { at: .4, spellEnergy: 1.25 };
+  const impact = { at: .4, kind: 'solid', snapQuality: 1 };
   assert.deepEqual(shotCue({ ...attempt, impact, castLabel: 'Clean snap' }),
     { base: 'pure', rune: null, success: true, blast: false });
-  const spell = { type: 'star', purity: 1 };
+  const spell = { type: 'star', purity: 1, potency: 1 };
   assert.deepEqual(shotCue({ ...attempt, impact, spell }),
     { base: 'pure', rune: 'star', success: true, blast: true });
-  assert.equal(shotCue({ ...attempt, impact: { at: .4, spellEnergy: 1.15 }, spell }).blast, false);
+  assert.equal(shotCue({ ...attempt, impact, spell: { ...spell, guided: true, potency: .6 } }).blast, false);
 });
 
 test('recognized runes use their own success and failure layers on all base outcomes', () => {
@@ -22,9 +22,11 @@ test('recognized runes use their own success and failure layers on all base outc
     const spell = { type, purity: .95 };
     assert.deepEqual(shotCue({ ...attempt, phase: 'result', spell }),
       { base: 'whiff', rune: type, success: false, blast: false });
-    assert.deepEqual(shotCue({ ...attempt, spell, turfAt: .3, impact: { at: .35, spellEnergy: 1.25 } }),
+    assert.deepEqual(shotCue({ ...attempt, spell, turfAt: .3, impact: { at: .35, kind: 'chunk' } }),
       { base: 'turf', rune: type, success: false, blast: false });
-    assert.deepEqual(shotCue({ ...attempt, spell, impact: { at: .35, spellEnergy: 1 } }),
+    assert.deepEqual(shotCue({ ...attempt, spell, impact: { at: .35, kind: 'top' } }),
+      { base: 'top', rune: type, success: false, blast: false });
+    assert.deepEqual(shotCue({ ...attempt, spell, impact: { at: .35, kind: 'solid' } }),
       { base: 'pure', rune: type, success: true, blast: false });
   }
 });
@@ -33,6 +35,7 @@ test('no sound starts at address or on the backswing, and a miss can sound on th
   assert.equal(shotCue({ ...attempt, phase: 'ready', club: { x: .5 } }), null);
   assert.equal(shotCue(attempt), null);
   assert.equal(shotCue({ ...attempt, club: { x: .5 } }).base, 'whiff');
+  assert.equal(shotCue({ ...attempt, club: { x: .5 }, contact: { at: .38 } }), null);
 });
 
 test('real crooked swings can produce either a clean whiff or a turf chunk', () => {

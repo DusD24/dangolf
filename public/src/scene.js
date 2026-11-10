@@ -6,6 +6,8 @@ import { POWER_MARKS } from './range-card.js';
 import { drawWizard } from './wizard.js';
 
 const TAU = Math.PI * 2;
+const DIVOT_OUTLINE = [[-.54, -.08], [-.47, -.15], [-.25, -.11], [-.13, -.13],
+  [-.07, -.025], [-.15, .11], [-.32, .14], [-.49, .105]];
 
 function ellipse(ctx, x, y, rx, ry, color, rotation = 0) {
   ctx.beginPath();
@@ -179,6 +181,63 @@ function sparks(ctx, origin, age, scale, color, count) {
   ctx.restore();
 }
 
+function drawDivot(ctx, point, age, steer) {
+  const across = steer * .10;
+  ctx.beginPath();
+  for (const [i, [x, z]] of DIVOT_OUTLINE.entries()) {
+    const edge = point(TEE_X + x, .005, across + z);
+    if (i === 0) ctx.moveTo(edge.x, edge.y);
+    else ctx.lineTo(edge.x, edge.y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#463327';
+  ctx.fill();
+  ctx.strokeStyle = '#ad9066';
+  ctx.lineWidth = 1.1;
+  ctx.stroke();
+
+  for (const offset of [-.055, .048]) {
+    const back = point(TEE_X - .47, .006, across + offset);
+    const front = point(TEE_X - .16, .006, across + offset * .60);
+    ctx.beginPath();
+    ctx.moveTo(back.x, back.y);
+    ctx.lineTo(front.x, front.y);
+    ctx.strokeStyle = '#ad83596b';
+    ctx.stroke();
+  }
+
+  // The mark stays in the turf after the clods have landed.
+  if (age < 0 || age > .64) return;
+  for (let i = 0; i < 13; i++) {
+    const lift = .025 + age * (1.65 + (i % 6) * .29) - 4.9 * age ** 2;
+    if (lift <= 0) continue;
+    const spread = (i * .618034 % 1 - .5) * 2;
+    const clod = point(TEE_X - .35 + age * (.70 + (i % 5) * .32),
+      lift, across + spread * (.09 + age * .81));
+    const size = clod.scale * (.013 + (i % 4) * .009);
+    ctx.save();
+    ctx.translate(clod.x, clod.y);
+    ctx.rotate(i * 1.2 + age * (i % 2 ? 13 : -11));
+    ctx.beginPath();
+    ctx.moveTo(-size, -.32 * size);
+    ctx.lineTo(.20 * size, -.66 * size);
+    ctx.lineTo(size, -.12 * size);
+    ctx.lineTo(.52 * size, .54 * size);
+    ctx.lineTo(-.73 * size, .49 * size);
+    ctx.closePath();
+    ctx.fillStyle = i % 3 === 0 ? '#8a6243' : '#67462f';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-size, -.32 * size);
+    ctx.lineTo(.20 * size, -.66 * size);
+    ctx.lineTo(size, -.12 * size);
+    ctx.strokeStyle = i % 3 === 0 ? '#a9ad69' : '#9c8056';
+    ctx.lineWidth = Math.max(.65, size * .28);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 function drawGuide(ctx, guide) {
   const { x, y, scale, pull, path, shaft, channelOnly, charge } = guide;
   const halfWidth = Math.max(8, scale * .11);
@@ -249,6 +308,7 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
   ctx.stroke();
   ctx.setLineDash([]);
 
+  if (practice.turfAt !== null) drawDivot(ctx, point, practice.elapsed - practice.turfAt, practice.steer);
   drawWizard(ctx, point, practice);
 
   if (flight.length > 1) {
@@ -276,7 +336,7 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
   ellipse(ctx, ballPoint.x, ballPoint.y, radius, radius, '#fff7de');
   ellipse(ctx, ballPoint.x + radius * .25, ballPoint.y + radius * .30, radius * .43, radius * .27, '#b1b49f');
 
-  if (practice.impact) {
+  if (practice.impact && practice.impact.kind !== 'chunk' && practice.impact.kind !== 'top') {
     const age = practice.elapsed - practice.impact.at;
     const pure = practice.impact.pure;
     sparks(ctx, tee, age, tee.scale, pure ? '#ffce79' : '#ffefae', pure ? 22 : 11);
@@ -296,10 +356,6 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
       ctx.restore();
     }
   }
-  if (practice.turfAt !== null) {
-    sparks(ctx, point(-.07, .03, practice.steer * .10), practice.elapsed - practice.turfAt, tee.scale, '#c6ad73', 14);
-  }
-
   if (guide) {
     if (guide.marked) drawGuide(ctx, guide);
     ellipse(ctx, guide.x, guide.y, 4, 4, '#f0d29b');

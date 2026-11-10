@@ -16,7 +16,7 @@ test('the shaft keeps its fitted length and reaches the physical strike', () => 
     practice.step();
     const pose = swingPose(practice, club);
     assert.ok(Math.abs(length(pose.grip, pose.tip) - club.length) < 1e-9);
-    if (practice.impact?.at === practice.elapsed) assert.ok(length(pose.tip, practice.club) < .001);
+    if (practice.contact?.at === practice.elapsed) assert.ok(length(pose.tip, practice.club) < .001);
   }
   assert.ok(practice.impact);
 });
