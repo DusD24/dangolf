@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#182433">
+  <title>Dangolf · Practice Tee</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./tee.css">
+  <script type="module" src="./src/main.js"></script>
+</head>
+<body>
+  <main id="practice">
+    <canvas id="tee" aria-label="Practice tee. Drag down, swipe up and lift, then tap just before the club reaches the ball." aria-describedby="prompt"></canvas>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow"><span aria-hidden="true">✦</span> Wizard golf</p>
+        <h1>Dangolf</h1>
+      </div>
+    </header>
+    <section class="controls" aria-label="Swing feedback">
+      <div class="instructions">
+        <p class="eyebrow" id="phase" role="status">Practice tee</p>
+        <p id="prompt">Pull down, then swipe up and lift.</p>
+      </div>
+      <button id="reset" type="button"><span aria-hidden="true">↺</span> Reset</button>
+      <dl class="stats">
+        <div><dt>Load</dt><dd id="load">—</dd></div>
+        <div><dt>Carry</dt><dd id="carry">—</dd></div>
+        <div><dt>Total</dt><dd id="distance">—</dd></div>
+      </dl>
+    </section>
+  </main>
+</body>
+</html>
