@@ -126,3 +126,35 @@ test('cancelling and resetting make a fresh attempt immediately possible', () =>
   assert.equal(practice.impact, null);
   assert.ok(startSwing(practice));
 });
+
+test('the best straight snap timing is inside the visible cue', () => {
+  for (const depth of [0.056, 0.10, 0.27]) {
+    let best;
+    for (let tapStep = 0; tapStep < 70; tapStep++) {
+      const practice = new Practice();
+      assert.ok(startSwing(practice, depth));
+      simulate(practice, tapStep * STEP);
+      const atCue = practice.snapCue;
+      assert.ok(practice.snap());
+      simulate(practice, 8);
+      if (!best || practice.distance > best.distance) {
+        best = { atCue, distance: practice.distance, tapStep };
+      }
+    }
+    assert.ok(best.atCue, 'Longest shot should follow the cue at pull depth ' +
+      depth + '. Best cast was at step ' + best.tapStep);
+  }
+});
+
+test('an early snap at the start of a shallow stroke weakens contact', () => {
+  const early = new Practice();
+  const plain = new Practice();
+  startSwing(early, 0.056);
+  startSwing(plain, 0.056);
+  simulate(early, 0.09);
+  assert.ok(early.snap());
+  simulate(early, 8);
+  simulate(plain, 8);
+  assert.ok(early.turfAt !== null);
+  assert.ok(early.distance < plain.distance);
+});

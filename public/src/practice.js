@@ -5,6 +5,8 @@ const CLUB_RADIUS = 0.044;
 const TETHER_LENGTH = 0.95;
 const MAX_PULL = 0.28;
 const MIN_PULL = 0.055;
+const SNAP_CUE_START = 0.068;
+const SNAP_CUE_END = 0.034;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const smooth = value => value * value * (3 - 2 * value);
@@ -45,6 +47,7 @@ export class Practice {
     this.startAngle = 0;
     this.castAt = null;
     this.castLabel = '';
+    this.snapStrength = 0;
     this.earlyPull = 0;
     this.turfAt = null;
     this.impact = null;
@@ -104,7 +107,7 @@ export class Practice {
     if (this.phase !== 'swing' || this.castAt !== null || this.impact || this.angularSpeed < 1) {
       return false;
     }
-    return this.approachTime <= 0.068 && this.approachTime >= 0.034;
+    return this.approachTime <= SNAP_CUE_START && this.approachTime >= SNAP_CUE_END;
   }
 
   get approachTime() {
@@ -115,9 +118,15 @@ export class Practice {
     if (this.phase !== 'swing' || this.castAt !== null) return false;
     const atCue = this.snapCue;
     this.castAt = this.elapsed;
-    const pastBall = this.impact || this.approachTime < 0.034;
-    this.castLabel = pastBall ? 'Late cast' : atCue ? 'Clean snap' : 'Early cast';
-    if (!pastBall) this.earlyPull = clamp((-this.angle - 0.52) / 0.80, 0, 1);
+    const lead = this.approachTime;
+    const late = this.impact || lead < SNAP_CUE_END;
+    this.castLabel = late ? 'Late cast' : atCue ? 'Clean snap' : 'Early cast';
+
+    // A taut tether sends the spell into the swing. Pulling on it too soon
+    // spends more of that force dragging the head toward the turf.
+    const alignment = Math.exp(-(((lead - 0.052) / 0.024) ** 2));
+    this.snapStrength = 0.30 + 0.70 * alignment;
+    this.earlyPull = clamp((lead - SNAP_CUE_START) / 0.14, 0, 1);
     return true;
   }
 
@@ -152,11 +161,11 @@ export class Practice {
     this.staffAngle = this.startAngle + (1.30 - this.startAngle) * progress;
 
     const castAge = this.castAt === null ? -1 : this.elapsed - this.castAt;
-    const snapTorque = castAge > 0 && castAge < 0.14
-      ? 225 * Math.sin(Math.PI * castAge / 0.14)
+    const snapPulse = castAge > 0 && castAge < 0.14
+      ? this.snapStrength * Math.sin(Math.PI * castAge / 0.14)
       : 0;
     const drive = 88 * (this.staffAngle - this.angle) - 10 * this.angularSpeed;
-    this.angularSpeed += (drive + snapTorque) * STEP;
+    this.angularSpeed += (drive + 225 * snapPulse) * STEP;
     this.angle += this.angularSpeed * STEP;
     const previous = this.club;
     const next = this.clubPose();
@@ -169,19 +178,18 @@ export class Practice {
     this.club = next;
 
     if (!this.impact && next.x > previous.x && crossesBall(previous, next, this.ball)) {
-      this.strikeBall(previous, castAge);
+      this.strikeBall(previous, snapPulse);
     }
     if (this.elapsed >= 0.92) this.phase = 'result';
   }
 
-  strikeBall(previous, castAge) {
+  strikeBall(previous, snapPulse) {
     const speed = Math.hypot(
       this.club.x - previous.x,
       this.club.y - previous.y,
       this.club.z - previous.z,
     ) / STEP;
-    const hotCast = castAge > 0 && castAge < 0.14 ? Math.sin(Math.PI * castAge / 0.14) : 0;
-    const loft = 0.055 + 0.12 * this.charge + 0.22 * hotCast;
+    const loft = 0.055 + 0.12 * this.charge + 0.22 * snapPulse;
     const heading = this.steer * 0.88;
     const transfer = 0.90 - 0.17 * Math.abs(this.steer);
     const horizontal = speed * transfer * Math.cos(loft);
