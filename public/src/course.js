@@ -38,7 +38,10 @@ function plantTreeLines(fairway, yards, water, bounds) {
 function makeHole(name, par, yards, stations, hazards, tip, target) {
   const pin = position(yards, stations.at(-1)[1]);
   const tee = position(0, 0);
-  const green = { ...pin, rx: meters(16), rz: meters(15) };
+  const fall = 1.95 + (yards - 330) * 2.399963;
+  const grade = .028 + .002 * (yards % 7);
+  const green = { ...pin, rx: meters(16), rz: meters(15),
+    slope: { x: grade * Math.cos(fall), z: grade * Math.sin(fall) } };
   const fairway = [[-7, 0, stations[0][2]], ...stations].map(([x, z, width]) => ({
     ...position(x, z), width: meters(width),
   }));
@@ -132,6 +135,15 @@ export const COURSE = [
 
 function inside(region, { x, z }) {
   return ((x - region.x) / region.rx) ** 2 + ((z - region.z) / region.rz) ** 2 <= 1;
+}
+
+export function isFringe(hole, ball, surface = surfaceAt(hole, ball)) {
+  if (surface !== 'fairway' && surface !== 'rough') return false;
+  const { x, z, rx, rz } = hole.green;
+  const dx = ball.x - x;
+  const dz = ball.z - z;
+  const relative = Math.hypot(dx / rx, dz / rz);
+  return relative > 1 && Math.hypot(dx, dz) * (1 - 1 / relative) <= meters(4);
 }
 
 export function surfaceAt(hole, ball) {

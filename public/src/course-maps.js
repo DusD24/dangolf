@@ -1,9 +1,9 @@
 import { CLUBS } from './clubs.js';
 import { surfaceAt } from './course.js';
-import { hazardsOnAim, landingOnAim, pinDistance } from './course-map.js';
+import { greenRead, hazardsOnAim, landingOnAim, pinDistance, puttAimTarget } from './course-map.js';
 import { drawHoleMap } from './course-view.js';
 import { METERS_PER_YARD } from './practice.js';
-import { manaPlan } from './mana.js';
+import { manaPlan, puttManaPlan } from './mana.js';
 import { POWER_MARKS, PREVIEW_PURITY, shotRanges } from './range-card.js';
 
 const labels = { fairway: 'Fairway', rough: 'Rough', green: 'Green', water: 'Water', sand: 'Bunker',
@@ -75,22 +75,26 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
 
   function renderChart() {
     screenToWorld = drawHoleMap(canvas, round, ball, { crossings, estimates });
-    get('map-pin').textContent = pinDistance(distance(ball, round.hole.pin), surfaceAt(round.hole, ball) === 'green');
+    get('map-pin').textContent = pinDistance(distance(ball, round.hole.pin),
+      round.club === 'putter' || surfaceAt(round.hole, ball) === 'green');
   }
 
   function renderRanges() {
     const putter = round.club === 'putter';
     const { rune, mode } = selectedSpell();
-    const ranges = shotRanges(round.club, round.surface, rune, mode);
+    const ranges = putter ? POWER_MARKS.map(power => {
+      const { distance, point } = round.previewPutt(power / 100);
+      return { power, stock: distance, point };
+    }) : shotRanges(round.club, round.surface, rune, mode);
     const display = putter ? feet : yards;
     const selected = ranges.find(row => row.power === power);
     get('map-club-name').textContent = CLUBS[round.club].name;
     get('map-metric').textContent = (putter ? 'Roll · ft' : 'Carry · yd') + ' · ' +
       (round.atTee ? 'Tee' : labels[round.surface]);
-    get('map-range-note').textContent = putter ? 'Estimates from this lie.' :
+    get('map-range-note').textContent = putter ? 'Plain roll from this aim, including slope. Marker shows where it would stop past the cup.' :
       'Spell uses ' + rune.name + ' at ' + Math.round(PREVIEW_PURITY * 100) + '% purity in ' +
       (mode === 'guided' ? 'Guided' : 'Hard') + '.';
-    get('map-mana-plan').textContent = manaPlan(round.mana, putter);
+    get('map-mana-plan').textContent = putter ? puttManaPlan(round.mana, round.puttingRune) : manaPlan(round.mana);
 
     for (const [id, button] of clubs) {
       button.setAttribute('aria-pressed', String(id === round.club));
@@ -116,6 +120,7 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
       }
     }
     return modes.map(([name, key, color]) => {
+      if (putter) return { name, color, point: selected.point, surface: surfaceAt(round.hole, selected.point) };
       const landing = selected[key + 'Landing'];
       if (!landing) return { name, color, ...landingOnAim(round, selected[key]) };
       const point = round.worldPoint(landing);
@@ -133,15 +138,17 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
     map.querySelector('.key-spell').hidden = !ready || putter;
     map.querySelector('.key-spell-snap').hidden = !ready || putter;
     aimAtPin.hidden = !ready;
+    get('putt-aim').hidden = !ready || !putter;
     get('map-target-wrap').hidden = !ready;
-    get('map-target').textContent = pinDistance(distance(round.lie, round.aimTarget), round.surface === 'green');
-    get('map-hazards').textContent = crossings.length
+    get('map-target').textContent = pinDistance(distance(round.lie, round.aimTarget), putter || round.surface === 'green');
+    get('map-hazards').textContent = putter && round.remaining < 33 ? greenRead(round) + ' · Arrows point downhill.' : crossings.length
       ? 'Along straight aim · ' + crossings.slice(0, 3).map(crossingLabel).join(' · ') +
         (crossings.length > 3 ? ' · +' + (crossings.length - 3) + ' more' : '')
       : 'Aim line clear of hazards and trees';
     get('map-landing').textContent = power + '% · ' +
       estimates.map(({ name, surface }) => name + ' → ' + labels[surface]).join(' · ');
-    get('map-tip').textContent = round.hole.tip + (ready ? ' Tap the map to change aim.' : '');
+    get('map-tip').textContent = putter ? 'Tap the map to pick a line. Use the aim buttons for ½° adjustments.' :
+      round.hole.tip + (ready ? ' Tap the map to change aim.' : '');
     renderChart();
   }
 
@@ -153,6 +160,11 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
   }
 
   aimAtPin.addEventListener('click', () => aim(round.hole.pin));
+  function nudgeAim(direction) {
+    aim(puttAimTarget(round, direction));
+  }
+  get('putt-left').addEventListener('click', () => nudgeAim(-1));
+  get('putt-right').addEventListener('click', () => nudgeAim(1));
   canvas.addEventListener('click', event => {
     const bounds = canvas.getBoundingClientRect();
     if (screenToWorld) aim(screenToWorld(event.clientX - bounds.left - canvas.clientLeft,
@@ -189,9 +201,11 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
       round = activeRound;
       ball = activeBall;
       ready = canPlan;
-      const caption = ready && crossings.length ? crossingLabel(crossings[0]) : 'Hole map';
+      const caption = round.club === 'putter' && round.remaining < 33 ? 'Green read' :
+        ready && crossings.length ? crossingLabel(crossings[0]) : 'Hole map';
       if (miniCaption.textContent !== caption) miniCaption.textContent = caption;
-      const key = [round.index, round.status, round.aim, ball.x, ball.z, miniCanvas.clientWidth, miniCanvas.clientHeight].join('/');
+      const key = [round.index, round.status, round.club, round.aim, ball.x, ball.z,
+        miniCanvas.clientWidth, miniCanvas.clientHeight].join('/');
       const moved = plannerChanged || key !== previousKey;
       if (moved) {
         drawHoleMap(miniCanvas, round, ball, { compact: true, crossings });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { analyzeStroke, RUNES } from '../public/src/spells.js';
+import { analyzePutt, analyzeStroke, PUTTING_RUNES, RUNES } from '../public/src/spells.js';
 
 function stroke(path, { drawMs = 550, exitPause = 0, turnPause = 0 } = {}) {
   const origin = { x: 0.55, y: 0.65 };
@@ -89,5 +89,20 @@ test('an up-and-down flick does not cast Spear', () => {
   const flick = [[0, 0], [-.03, -.3], [-.025, -.68], [0, -1], [.02, -.65], [.04, -.31], [0, 0]];
   for (const mode of ['guided', 'hard']) {
     assert.equal(analyzeStroke(stroke(flick), mode, 'spear').spell, null);
+  }
+});
+
+test('putting runes cast with one continuous pull and never cast on a trace alone', () => {
+  for (const rune of PUTTING_RUNES) {
+    const points = stroke(rune.path, { drawMs: 1200 }).slice(0, rune.path.length + 5);
+    const trace = points.slice(0, rune.path.length);
+    for (const mode of ['guided', 'hard']) {
+      assert.equal(analyzePutt(trace, mode, rune).attempted, false);
+      const result = analyzePutt(points, mode, rune);
+      assert.equal(result.start, trace.at(-1));
+      assert.equal(result.spell.id, rune.id);
+      assert.equal(result.spell.purity, 1);
+      assert.equal(analyzePutt([points[0], points.at(-1)], mode, rune).attempted, false);
+    }
   }
 });

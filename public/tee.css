@@ -125,6 +125,16 @@ button:active:not(:disabled) { border-color: #ffe2a7; }
 }
 
 .actions { justify-content: flex-end; margin-inline-start: auto; }
+.putting-controls:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  width: min(100%, 360px);
+  margin-inline: auto;
+}
+.putting-controls button { flex: 1; min-height: 44px; padding-inline: 7px; font-size: .79rem; }
+#putt-aim-offset { min-width: 66px; color: #f5dbab; font-size: .72rem; text-align: center; }
 
 .gear-slot {
   display: inline-flex;
@@ -329,6 +339,9 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
 .key-spell-snap { color: #9dc8ff; }
 .key-snap { color: #dcb1ff; }
 .chart-hazards { margin: 7px 0 0; color: #f2d4aa; font-size: .76rem; line-height: 1.35; }
+#putt-aim:not([hidden]) { display: flex; gap: 6px; margin-top: 7px; }
+#putt-aim button { flex: 1; }
+#putting-runes:not([hidden]) { margin-bottom: 9px; }
 #map-tip { margin: 0; }
 .chart-planner {
   padding: 8px;
@@ -409,6 +422,7 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
   .gear-slot strong { font-size: .79rem; }
   #spell-mode { width: 76px; }
   #rune-guide { width: 110px; }
+  #rune-guide.putt-spell strong { font-size: .68rem; }
   #club-choice { width: 98px; }
   h1 { font-size: 2.1rem; }
 }

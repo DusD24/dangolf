@@ -32,6 +32,23 @@ export const RUNES = [
   { id: 'star', name: 'Star', type: 'star', pace: 1050, path: star },
 ];
 
+const texas = [[0, 0], [-.17, -.22], [-.32, -.26], [-.54, -.51], [-.30, -.51],
+  [-.30, -1], [-.05, -1], [-.05, -.72], [.38, -.66], [.50, -.46], [.35, -.29], [.13, -.17], [0, 0]];
+
+// The inward spiral exits down its center so the thumb can flow into the putt.
+const flush = Array.from({ length: 33 }, (_, i) => {
+  const progress = i / 32;
+  const radius = .50 - .455 * progress;
+  const turn = progress * 4 * Math.PI;
+  return [-radius * Math.sin(turn), -.50 + radius * Math.cos(turn)];
+});
+flush.push([0, 0]);
+
+export const PUTTING_RUNES = [
+  { id: 'texas-wedge', name: 'Texas Wedge', type: 'texas-wedge', pace: 1450, path: texas },
+  { id: 'royal-flush', name: 'Royal Flush', type: 'royal-flush', pace: 1700, path: flush },
+];
+
 function normalizedSamples(points) {
   let minX = Infinity;
   let maxX = -Infinity;
@@ -69,7 +86,7 @@ function normalizedSamples(points) {
   return samples;
 }
 
-const templates = RUNES.map(rune => ({
+const templates = [...RUNES, ...PUTTING_RUNES].map(rune => ({
   rune,
   samples: normalizedSamples(rune.path.map(([x, y]) => ({ x, y }))),
 }));
@@ -88,9 +105,9 @@ function shapeScore(path, template, guided) {
   return clamp01(1 - Math.max(0, error - grace) / (guided ? .29 : .25));
 }
 
-export function runeExit(points) {
+export function runeExit(points, pullThreshold = .052) {
   const start = points[0];
-  const pull = points.findIndex(point => point.y > start.y + 0.052);
+  const pull = points.findIndex(point => point.y > start.y + pullThreshold);
   if (pull < 4) return -1;
 
   let top = 0;
@@ -110,6 +127,28 @@ export function runeExit(points) {
   }
   // Choose the closest return to the start before the first committed pull.
   return exit > top ? exit : -1;
+}
+
+export const PUTT_RUNE_PULL = .025;
+
+export function analyzePutt(points, mode, rune) {
+  const exit = rune ? runeExit(points, PUTT_RUNE_PULL) : -1;
+  const start = points[0];
+  const drewShape = rune && points.some(point => point.y < start.y - .065);
+  if (exit < 0) return { start, spell: null, attempted: false, drawing: Boolean(drewShape) };
+
+  const guided = mode === 'guided';
+  const origin = points[exit];
+  const path = normalizedSamples(points.slice(0, exit + 1));
+  const template = templates.find(item => item.rune.id === rune.id);
+  const geometry = shapeScore(path, template.samples, guided);
+  if (geometry < .69) return { start: origin, spell: null, attempted: true, drawing: false };
+  const pace = clamp01(1 - Math.max(0, (origin.t - start.t) / (rune.pace * (guided ? 1.2 : 1)) - 1) / 1.45);
+  const pause = points[exit + 1].t - origin.t;
+  const rhythm = 1 - clamp01((pause - (guided ? 200 : 155)) / 450);
+  const score = .64 * geometry + .18 * pace + .18 * rhythm;
+  const purity = score >= .985 ? 1 : score;
+  return { start: origin, attempted: true, drawing: false, spell: { ...rune, purity, geometry, pace, rhythm, guided } };
 }
 
 function swingRhythm(swing, turn, guided) {
@@ -140,6 +179,7 @@ export function analyzeStroke(points, mode, guideId) {
   let match;
   let geometry = 0;
   for (const template of templates) {
+    if (PUTTING_RUNES.includes(template.rune)) continue;
     if (guided && template.rune.id !== guideId) continue;
     const score = shapeScore(path, template.samples, guided);
     if (score > geometry) {

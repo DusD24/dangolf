@@ -20,6 +20,7 @@ const TURF_BOUNCE = 0.12;
 const ROLL_DECELERATION = 8.5;
 const GREEN_DECELERATION = 3.2;
 const TOP_DECELERATION = 5.2;
+const FLAT = { x: 0, z: 0 };
 const SURFACES = {
   fairway: { carry: 1, bounce: 1, roll: 1, putt: 1.4, top: 1 },
   green: { carry: 1, bounce: .9, roll: GREEN_DECELERATION / ROLL_DECELERATION, putt: 1, top: .65 },
@@ -56,9 +57,10 @@ export class Practice {
     this.configure();
   }
 
-  configure(club = 'driver', surfaceAt = () => 'fairway') {
+  configure(club = 'driver', surfaceAt = () => 'fairway', slopeAt = () => FLAT) {
     this.clubType = Object.hasOwn(CLUBS, club) ? club : 'driver';
     this.surfaceAt = surfaceAt;
+    this.slopeAt = slopeAt;
     this.reset();
   }
 
@@ -134,16 +136,31 @@ export class Practice {
     return true;
   }
 
-  putt(charge) {
+  putt(charge, spell = null, cup = null) {
     this.charge = clamp(charge, 0, 1);
-    this.ball.vx = Math.sqrt(2 * GREEN_DECELERATION * 22) * this.charge;
+    this.spell = spell;
+    const dx = cup ? cup.x - this.ball.x : 1;
+    const dz = cup ? cup.z - this.ball.z : 0;
+    const length = Math.hypot(dx, dz);
+    const speed = cup ? Math.sqrt(2 * GREEN_DECELERATION * length + .8 ** 2) :
+      Math.sqrt(2 * GREEN_DECELERATION * 22) * this.charge;
+    this.ball.vx = length ? speed * dx / length : 0;
+    this.ball.vz = length ? speed * dz / length : 0;
     this.phase = 'result';
-    this.impact = { at: this.elapsed, putt: true, stinger: 0, curve: 0 };
+    this.impact = { at: this.elapsed, kind: 'solid', putt: true, royal: Boolean(cup), stinger: 0, curve: 0 };
   }
 
-  puttEstimate() {
-    const surface = SURFACES[this.surfaceAt(this.ball)] ?? SURFACES.fairway;
-    return 22 * this.charge ** 2 / surface.putt;
+  puttEstimate(spell = null) {
+    const surface = this.surfaceAt(this.ball);
+    const drag = this.puttDrag(surface, spell) - GRAVITY * this.slopeAt(this.ball).x;
+    return 22 * GREEN_DECELERATION * this.charge ** 2 / drag;
+  }
+
+  puttDrag(surface, spell = this.spell) {
+    if (this.impact?.royal) return GREEN_DECELERATION;
+    const friction = (SURFACES[surface] ?? SURFACES.fairway).putt;
+    const texas = spell?.type === 'texas-wedge' && (surface === 'fairway' || surface === 'rough');
+    return GREEN_DECELERATION * (texas ? mix(friction, 1, spell.purity) : friction);
   }
 
   cancelStroke() {
@@ -325,12 +342,18 @@ export class Practice {
     }
 
     const speed = Math.hypot(ball.vx, ball.vz);
-    const surface = SURFACES[this.surfaceAt(ball)] ?? SURFACES.fairway;
-    const drag = putt ? GREEN_DECELERATION * surface.putt : kind === 'top' ? TOP_DECELERATION * surface.top :
+    const lie = this.surfaceAt(ball);
+    const surface = SURFACES[lie] ?? SURFACES.fairway;
+    const drag = putt ? this.puttDrag(lie) : kind === 'top' ? TOP_DECELERATION * surface.top :
       ROLL_DECELERATION * surface.roll * (1 - 0.30 * stinger);
     const roll = Math.max(0, 1 - drag * STEP / speed);
     ball.vx *= roll;
     ball.vz *= roll;
+    if (putt && !this.impact.royal && roll > 0) {
+      const slope = this.slopeAt(ball);
+      ball.vx += slope.x * GRAVITY * STEP;
+      ball.vz += slope.z * GRAVITY * STEP;
+    }
   }
 
   get distance() {

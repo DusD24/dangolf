@@ -1,4 +1,5 @@
 import { mapProjection, pointAlongAim } from './course-map.js';
+import { surfaceAt } from './course.js';
 import { METERS_PER_YARD } from './practice.js';
 
 const COLORS = {
@@ -108,11 +109,26 @@ export function drawCourseGround(ctx, round, point) {
   terrain(ctx, round.hole, points =>
     clipNear(points.map(world => round.localPoint(world))).map(local => point(local.x, 0, local.z)), true);
   drawCourseTrees(ctx, round, point);
+  if (round.club === 'putter') {
+    const { slope } = round.hole.green;
+    if (slope) {
+      const grade = Math.hypot(slope.x, slope.z);
+      const down = { x: slope.x / grade * .5, z: slope.z / grade * .5 };
+      for (const x of [1.25, 3.8, 7, 10.8]) {
+        for (const z of [-2, 0, 2]) {
+          const start = round.worldPoint({ x, z });
+          if (surfaceAt(round.hole, start) !== 'green') continue;
+          const end = round.localPoint({ x: start.x + down.x, z: start.z + down.z });
+          arrow(ctx, point(x, .012, z), point(end.x, .012, end.z), '#d5efab7a');
+        }
+      }
+    }
+  }
 
   const pin = round.localPoint(round.hole.pin);
   if (pin.x < -.9) return;
   const cup = point(pin.x, 0, pin.z);
-  const flagHeight = Math.max(.85, Math.min(7, round.remaining * .027));
+  const flagHeight = round.club === 'putter' ? 2.15 : Math.max(.85, Math.min(7, round.remaining * .027));
   const flag = point(pin.x, flagHeight, pin.z);
   ctx.beginPath();
   ctx.ellipse(cup.x, cup.y, Math.max(2, cup.scale * .11), Math.max(1, cup.scale * .03), 0, 0, Math.PI * 2);
@@ -150,6 +166,15 @@ function mapLine(ctx, a, b, color, weight = 1) {
   ctx.stroke();
 }
 
+function arrow(ctx, a, b, color) {
+  const angle = Math.atan2(b.y - a.y, b.x - a.x);
+  const size = Math.min(5, Math.hypot(b.x - a.x, b.y - a.y) * .47);
+  mapLine(ctx, a, b, color, 1.2);
+  for (const offset of [-.6, .6]) {
+    mapLine(ctx, b, { x: b.x - size * Math.cos(angle + offset), y: b.y - size * Math.sin(angle + offset) }, color, 1.2);
+  }
+}
+
 function mapDot(ctx, point, radius, color) {
   ctx.beginPath();
   ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
@@ -169,7 +194,7 @@ function mapText(ctx, label, x, y, color = '#dbcdb0') {
 }
 
 function drawAim(ctx, round, map, width, height, compact, crossings) {
-  const { point, scale, zoom } = map;
+  const { point, scale, zoom, putting } = map;
   const start = point(round.lie);
   const step = (zoom ? 10 : round.hole.yards <= 180 ? 25 : 50) * METERS_PER_YARD;
   const { minX, maxX, minZ, maxZ } = round.hole.bounds;
@@ -181,11 +206,11 @@ function drawAim(ctx, round, map, width, height, compact, crossings) {
   ctx.setLineDash(compact ? [2, 2] : [5, 5]);
   mapLine(ctx, start, at(limit), '#f6dcaa9e', compact ? 1 : 1.5);
   ctx.setLineDash([]);
-  for (const { type, from, to } of crossings) {
+  for (const { type, from, to } of putting ? [] : crossings) {
     mapLine(ctx, at(from), at(to), MAP_INK[type], compact ? 2 : 3);
   }
   if (!compact) {
-    for (let distance = step; distance <= limit; distance += step) {
+    for (let distance = step; !putting && distance <= limit; distance += step) {
       const p = at(distance);
       if (p.x < 6 || p.y < 12 || p.x > width - 33 || p.y > height - 7) continue;
       mapDot(ctx, p, 2, MAP_INK.aim);
@@ -193,7 +218,7 @@ function drawAim(ctx, round, map, width, height, compact, crossings) {
     }
     const target = point(round.aimTarget);
     const center = point(round.hole.pin);
-    if (Math.hypot(target.x - center.x, target.y - center.y) > 12) {
+    if (Math.hypot(target.x - center.x, target.y - center.y) > (putting ? 3 : 12)) {
       ctx.beginPath();
       ctx.arc(target.x, target.y, 7, 0, Math.PI * 2);
       ctx.strokeStyle = MAP_INK.aim;
@@ -249,6 +274,20 @@ export function drawHoleMap(canvas, round, ball, { compact = false, crossings = 
     fillOval(ctx, center.x, center.y, radius, radius, '#16392d');
     fillOval(ctx, center.x - radius * .16, center.y - radius * .16, radius * .68, radius * .68, '#52734e');
   }
+  if (map.putting && round.hole.green.slope) {
+    const { x, z } = round.hole.green.slope;
+    const grade = Math.hypot(x, z);
+    const length = compact ? 7 : 15;
+    const spacing = compact ? 25 : 39;
+    for (let left = spacing / 2; left < width; left += spacing) {
+      for (let top = spacing / 2; top < height; top += spacing) {
+        const end = { x: left + z / grade * length, y: top - x / grade * length };
+        if (surfaceAt(round.hole, map.world(end.x, end.y)) === 'green') {
+          arrow(ctx, { x: left, y: top }, end, '#d5efabb0');
+        }
+      }
+    }
+  }
   if (round.status === 'ready') drawAim(ctx, round, map, width, height, compact, crossings);
 
   const tee = point(round.hole.tee);
@@ -268,11 +307,12 @@ export function drawHoleMap(canvas, round, ball, { compact = false, crossings = 
   mapDot(ctx, point(ball), compact ? 3 : 4, MAP_INK.ball);
 
   const yards = map.zoom ? 10 : round.hole.yards <= 180 ? 25 : 50;
-  const bar = yards * METERS_PER_YARD * scale;
+  const feet = round.remaining < 5 ? 3 : 6;
+  const bar = (map.putting ? feet * .3048 : yards * METERS_PER_YARD) * scale;
   const left = compact ? 6 : 12;
   const baseline = height - (compact ? 5 : 10);
   mapLine(ctx, { x: left, y: baseline }, { x: left + bar, y: baseline }, MAP_INK.aim, 1.5);
   for (const x of [left, left + bar]) mapLine(ctx, { x, y: baseline - 3 }, { x, y: baseline }, MAP_INK.aim);
-  mapText(ctx, yards + ' yd', left, baseline - 5);
+  mapText(ctx, map.putting ? feet + ' ft' : yards + ' yd', left, baseline - 5);
   return map.world;
 }

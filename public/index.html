@@ -44,6 +44,11 @@
         </div>
         <button class="gear-slot" id="club-choice" type="button" aria-haspopup="dialog">Club bag</button>
       </div>
+      <div class="putting-controls" id="putting-controls" role="group" aria-label="Putt aim" hidden>
+        <button id="putt-aim-left" type="button" aria-label="Aim putt half a degree left">↶ Aim left</button>
+        <output id="putt-aim-offset" aria-live="polite">At cup</output>
+        <button id="putt-aim-right" type="button" aria-label="Aim putt half a degree right">Aim right ↷</button>
+      </div>
       <div class="actions">
         <button id="cancel-spell" type="button" aria-label="Cancel spell" hidden>Cancel<span> spell</span></button>
         <button id="hole-map" type="button" hidden>Aim / Map</button>
@@ -59,6 +64,8 @@
         <form method="dialog"><button aria-label="Close equipment" value="close">Close</button></form>
       </div>
       <section id="spellbook" hidden>
+        <p class="panel-note" id="putting-rune-note">Trace the rune, pull down, then lift.</p>
+        <div class="rune-grid" id="putting-runes" role="group" aria-label="Putting spells"></div>
         <p class="panel-note" id="spellbook-note"></p>
         <div class="spell-loadout" id="spell-loadout" role="group" aria-label="Equipped rune slots"></div>
         <p class="panel-note" id="spellbook-mana"></p>
@@ -99,6 +106,10 @@
               <span class="key-spell" data-plan>Spell</span><span class="key-spell-snap" data-plan>Spell + snap</span>
             </div>
             <p id="map-hazards" class="chart-hazards" data-plan></p>
+            <div id="putt-aim" aria-label="Fine putt aim" role="group" hidden>
+              <button id="putt-left" type="button">↶ Aim left</button>
+              <button id="putt-right" type="button">Aim right ↷</button>
+            </div>
           </div>
           <aside class="chart-planner" id="map-planner" aria-labelledby="map-club-name">
             <p class="eyebrow">Shot planner</p>

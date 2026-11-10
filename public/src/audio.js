@@ -7,7 +7,8 @@ export function shotCue(practice) {
   if (impact?.kind === 'chunk' || (turfAt !== null && (!impact || turfAt <= impact.at))) {
     return { base: 'turf', rune, success: false, blast: false };
   }
-  if (impact?.putt) return { base: 'putt', rune: null, success: true, blast: false };
+  if (impact?.putt) return { base: 'putt', rune: impact.runeAttempt || null,
+    success: !impact.runeAttempt || (rune === 'royal-flush' ? impact.royal : Boolean(rune)), blast: false };
   if (impact) {
     const blast = rune === 'star' && !spell.guided && spell.potency >= .985;
     const clean = Math.abs(practice.steer) < 0.22 &&
@@ -138,6 +139,13 @@ function runeSound(context, out, at, rune, success) {
       tone(context, out, at + index * .048, note, note * (success ? 1.07 : .73),
         .18, .16 - index * .025, success ? 'sine' : 'triangle');
     }
+  } else if (rune === 'texas-wedge') {
+    tone(context, out, at, success ? 435 : 266, success ? 620 : 113, .17, .15, 'triangle');
+    tone(context, out, at + .054, success ? 742 : 161, success ? 925 : 91, .20, .12);
+  } else if (rune === 'royal-flush') {
+    noise(context, out, at, success ? 3100 : 770, success ? 630 : 220, .31, .19, { attack: .046, q: 1.4 });
+    tone(context, out, at + .03, success ? 910 : 225, success ? 355 : 105, .22, .16);
+    tone(context, out, at + .18, success ? 1160 : 145, success ? 1530 : 75, .20, .13, 'triangle');
   }
 }
 

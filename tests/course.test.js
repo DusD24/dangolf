@@ -118,10 +118,10 @@ test('hole nine advances to the back nine and hole 18 completes the scorecard', 
   for (let i = 0; i < 18; i++) {
     assert.equal(round.index, i);
     const { pin } = round.hole;
-    round.lie = { x: pin.x - 3, z: pin.z };
+    round.lie = { x: pin.x - 1, z: pin.z };
     round.prepare(practice);
     assert.equal(round.club, 'putter');
-    playShot(round, practice, { putt: 0.37 });
+    playShot(round, practice, { putt: .23 });
     assert.equal(round.status, 'holed');
     assert.equal(round.card[i], 1);
     round.next(practice);
@@ -208,4 +208,65 @@ test('a putt that crosses the cup too fast stays in play', () => {
   assert.equal(round.status, 'shot-over');
   assert.equal(round.card.length, 0);
   assert.ok(round.landing.x > round.hole.pin.x);
+});
+
+test('a long putt breaks across a slope and finishes short when lagged', () => {
+  const round = new Round();
+  const practice = new Practice();
+  const { pin, green } = round.hole;
+  round.lie = { x: pin.x - 12, z: pin.z };
+  round.prepare(practice);
+  playShot(round, practice, { putt: .66 });
+  assert.equal(round.status, 'shot-over');
+  assert.ok(round.landing.x < pin.x - 1);
+  assert.ok((round.landing.z - pin.z) * Math.sign(green.slope.z) > .35);
+});
+
+test('Royal Flush costs 80 and holes at 90 percent even when aimed away', () => {
+  for (const purity of [.899, .90]) {
+    const round = new Round();
+    const practice = new Practice();
+    const { pin } = round.hole;
+    round.lie = { x: pin.x - 12, z: pin.z };
+    round.prepare(practice);
+    round.setAim({ x: pin.x - 15, z: pin.z });
+    const spell = { type: 'royal-flush', purity };
+    assert.ok(round.putt(practice, .2, spell, spell.type));
+    for (let i = 0; i < 15 / STEP && round.status === 'playing'; i++) {
+      practice.step();
+      round.track(practice);
+    }
+    assert.equal(round.mana, 20);
+    assert.equal(round.strokes, 1);
+    assert.equal(round.status, purity < .90 ? 'shot-over' : 'holed');
+  }
+});
+
+test('Texas Wedge equips a fringe roll with less drag and cannot be cast from the green', () => {
+  const runs = [false, true].map(cast => {
+    const round = new Round();
+    const practice = new Practice();
+    const { pin, green } = round.hole;
+    round.lie = { x: pin.x + green.rx + 2.5, z: pin.z };
+    round.prepare(practice);
+    round.selectClub('putter', practice);
+    assert.equal(round.puttingRune, 'texas-wedge');
+    assert.equal(round.putt(practice, .55, null, 'royal-flush'), false);
+    round.mana = 39;
+    assert.equal(round.putt(practice, .55, null, 'texas-wedge'), false);
+    assert.equal(round.strokes, 0);
+    round.mana = 100;
+    const spell = cast ? { type: 'texas-wedge', purity: 1 } : null;
+    assert.ok(round.putt(practice, .55, spell, cast ? spell.type : false));
+    for (let i = 0; i < 15 / STEP && round.status === 'playing'; i++) {
+      practice.step();
+      round.track(practice);
+    }
+    assert.equal(round.mana, cast ? 80 : 100);
+    round.next(practice);
+    assert.equal(round.surface, 'green');
+    assert.equal(round.putt(practice, .55, null, 'texas-wedge'), false);
+    return round.remaining;
+  });
+  assert.ok(runs[1] + 1 < runs[0]);
 });

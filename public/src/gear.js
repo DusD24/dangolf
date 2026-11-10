@@ -1,7 +1,7 @@
 import { CLUB_HEADS, CLUBS } from './clubs.js';
-import { manaPlan, MAX_MANA, SPELL_MANA_COST } from './mana.js';
+import { manaPlan, MAX_MANA, puttManaPlan, spellManaCost, SPELL_MANA_COST } from './mana.js';
 import { PREVIEW_PURITY, rangeCard } from './range-card.js';
-import { RUNES } from './spells.js';
+import { PUTTING_RUNES, RUNES } from './spells.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const runeLabel = rune => rune.type === 'crescent' ? rune.name + (rune.direction > 0 ? ' →' : ' ←') : rune.name;
@@ -53,6 +53,8 @@ export function createGear({ equip, changeSpell }) {
   const bag = document.querySelector('#club-bag');
   const loadoutGrid = document.querySelector('#spell-loadout');
   const runeGrid = document.querySelector('#rune-grid');
+  const puttGrid = document.querySelector('#putting-runes');
+  const puttNote = document.querySelector('#putting-rune-note');
   const spellbookNote = document.querySelector('#spellbook-note');
   const spellbookMana = document.querySelector('#spellbook-mana');
   const manaStat = document.querySelector('#mana-stat');
@@ -66,11 +68,14 @@ export function createGear({ equip, changeSpell }) {
   const loadout = ['crescent-right', 'spear', 'star'].map(id => RUNES.find(rune => rune.id === id));
   let activeSlot = 0;
   let armed = true;
+  let puttRune = null;
+  let puttingLie = null;
   let shownMana;
   let equipped = null;
   let preview = null;
   const clubs = new Map();
   const runes = new Map();
+  const puttRunes = new Map();
   const slotButtons = loadout.map((_, index) => {
     const button = document.createElement('button');
     button.className = 'gear-slot';
@@ -87,15 +92,20 @@ export function createGear({ equip, changeSpell }) {
 
   function drawSpellSlots() {
     const rune = loadout[activeSlot];
+    const putting = equipped === 'putter';
+    const selected = putting ? puttRune : armed ? rune : null;
     setSlot(modeButton, icon(modeIcon, '-14 -14 28 28'), 'Casting', mode === 'guided' ? 'Guided' : 'Hard');
     modeButton.setAttribute('aria-pressed', String(mode === 'hard'));
-    const shot = armed ? runeLabel(rune) : 'Plain shot';
-    const mark = armed ? runeIcon(rune) : icon('M0 -8V8 M-5 3L0 8L5 3', '-13 -13 26 26');
+    const shot = selected ? runeLabel(selected) : putting ? 'Plain putt' : 'Plain shot';
+    const mark = selected ? runeIcon(selected) : icon('M0 -8V8 M-5 3L0 8L5 3', '-13 -13 26 26');
     setSlot(spellButton, mark, 'Spellbook', shot);
+    spellButton.classList.toggle('putt-spell', putting && Boolean(selected));
     spellButton.setAttribute('aria-label', 'Spellbook, ' + shot);
     spellbookNote.textContent = mode === 'guided'
       ? 'Pick a slot to arm its trace, or tap a rune below to equip it.'
       : 'Pick a slot to arm casting. Draw any equipped rune. The selected slot sets the planner.';
+    for (const node of [spellbookNote, loadoutGrid, runeGrid]) node.hidden = putting;
+    puttGrid.hidden = puttNote.hidden = !putting && !puttingLie;
     for (const [index, slot] of slotButtons.entries()) {
       const item = loadout[index];
       setSlot(slot, runeIcon(item), 'Slot ' + (index + 1), runeLabel(item));
@@ -105,6 +115,15 @@ export function createGear({ equip, changeSpell }) {
       const slot = loadout.findIndex(item => item.id === id);
       button.setAttribute('aria-pressed', String(armed && id === rune.id));
       status.textContent = slot === -1 ? 'Available' : 'Equipped · Slot ' + (slot + 1);
+    }
+    for (const [option, { button, status }] of puttRunes) {
+      const cost = spellManaCost(option.type);
+      const valid = option.type === puttingLie;
+      const short = Math.max(0, cost - shownMana);
+      button.disabled = !valid || short > 0;
+      button.setAttribute('aria-pressed', String(puttRune === option));
+      status.textContent = cost + ' mana · ' + (valid ? short > 0 ? 'Need ' + short + ' more' : 'Ready' :
+        option.type === 'royal-flush' ? 'On the green only' : 'From the fringe only');
     }
   }
 
@@ -119,7 +138,7 @@ export function createGear({ equip, changeSpell }) {
     document.querySelector('#bag-range-note').textContent = putting ? 'Flat range estimate.' :
       'Spell uses ' + runeLabel(rune) + ' at ' + Math.round(PREVIEW_PURITY * 100) + '% purity on a fairway.';
     bagManaPlan.hidden = shownMana === null;
-    if (shownMana !== null) bagManaPlan.textContent = manaPlan(shownMana, putting);
+    if (shownMana !== null) bagManaPlan.textContent = putting ? puttManaPlan(shownMana, puttingLie) : manaPlan(shownMana);
     for (const heading of bag.querySelectorAll('[data-spell-range]')) heading.hidden = putting;
     bagRows.replaceChildren();
     for (const row of rangeCard(id, rune, mode)) {
@@ -154,6 +173,25 @@ export function createGear({ equip, changeSpell }) {
     runes.set(option.id, { button, status });
   }
 
+  for (const option of PUTTING_RUNES) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.puttRune = option.id;
+    const description = option.type === 'royal-flush' ? '90% purity sinks the putt' : 'Roll smoothly from the fringe';
+    const status = textElement('small', '');
+    status.className = 'rune-status';
+    button.append(runeIcon(option), textElement('strong', option.name), textElement('small', description), status);
+    button.addEventListener('click', () => {
+      if (equipped !== 'putter' && !equip('putter')) return;
+      puttRune = option;
+      drawSpellSlots();
+      dialog.close();
+      changeSpell();
+    });
+    puttGrid.append(button);
+    puttRunes.set(option, { button, status });
+  }
+
   for (const [id, club] of Object.entries(CLUBS)) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -172,6 +210,7 @@ export function createGear({ equip, changeSpell }) {
   });
   cancelSpell.addEventListener('click', () => {
     armed = false;
+    puttRune = null;
     drawSpellSlots();
     changeSpell();
   });
@@ -195,23 +234,28 @@ export function createGear({ equip, changeSpell }) {
   drawSpellSlots();
   return {
     get mode() { return mode; },
-    get rune() { return loadout[activeSlot]; },
-    get armed() { return armed; },
+    get swingRune() { return loadout[activeSlot]; },
+    get rune() { return equipped === 'putter' ? puttRune : loadout[activeSlot]; },
+    get armed() { return equipped === 'putter' ? Boolean(puttRune) : armed; },
     setShotSpell(id) {
+      puttRune = null;
       const slot = loadout.findIndex(rune => rune.id === id);
       armed = slot >= 0;
       if (armed) activeSlot = slot;
       drawSpellSlots();
     },
     hasRune(id) { return loadout.some(rune => rune.id === id); },
-    update(club, enabled, mana = null) {
+    update(club, enabled, mana = null, lieRune = null) {
+      const refreshSpells = mana !== shownMana || club !== equipped || lieRune !== puttingLie;
+      puttingLie = lieRune;
+      if (club !== 'putter' || puttRune?.type !== puttingLie) puttRune = null;
       if (mana !== shownMana) {
         shownMana = mana;
         manaStat.hidden = mana === null;
         const balance = mana === null ? '' : mana + '/' + MAX_MANA;
         manaValue.textContent = balance;
         spellbookMana.textContent = (mana === null ? 'Unlimited practice mana. ' : balance + ' mana. ') +
-          'Course casts cost ' + SPELL_MANA_COST + ' mana. Purity and contact determine refunds.';
+          'Swing spells cost ' + SPELL_MANA_COST + ' mana. Purity and contact determine refunds.';
       }
       if (club !== equipped) {
         equipped = club;
@@ -220,6 +264,7 @@ export function createGear({ equip, changeSpell }) {
         setSlot(bagButton, clubIcon(profile), 'Club bag', label);
         bagButton.setAttribute('aria-label', 'Club bag, ' + profile.name + ' equipped');
       }
+      if (refreshSpells) drawSpellSlots();
       for (const button of [modeButton, spellButton, bagButton, cancelSpell]) {
         if (button.disabled === enabled) button.disabled = !enabled;
       }

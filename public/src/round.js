@@ -1,7 +1,7 @@
 import { CLUBS } from './clubs.js';
-import { COURSE, hitsTree, surfaceAt } from './course.js';
-import { HOLE_MANA_RECOVERY, manaRecovery, MAX_MANA, SPELL_MANA_COST } from './mana.js';
-import { BALL_RADIUS, TEE_X } from './practice.js';
+import { COURSE, hitsTree, isFringe, surfaceAt } from './course.js';
+import { HOLE_MANA_RECOVERY, manaRecovery, MAX_MANA, ROYAL_FLUSH_PURITY, spellManaCost } from './mana.js';
+import { BALL_RADIUS, Practice, STEP, TEE_X } from './practice.js';
 import { shotRanges } from './range-card.js';
 
 export const CLUB_NAMES = Object.fromEntries(Object.entries(CLUBS).map(([id, club]) => [id, club.name]));
@@ -22,14 +22,16 @@ function closestClub(surface, distance) {
   return closest;
 }
 
-function passesCup(from, to, pin) {
+function cupMiss(from, to, pin) {
   const dx = to.x - from.x;
   const dz = to.z - from.z;
   const length = dx * dx + dz * dz;
   const projection = length ? ((pin.x - from.x) * dx + (pin.z - from.z) * dz) / length : 0;
   const fraction = Math.max(0, Math.min(1, projection));
-  return Math.hypot(from.x + fraction * dx - pin.x, from.z + fraction * dz - pin.z) <= .19;
+  return Math.hypot(from.x + fraction * dx - pin.x, from.z + fraction * dz - pin.z);
 }
+
+const FLAT = { x: 0, z: 0 };
 
 export class Round {
   constructor(holes = COURSE) {
@@ -43,6 +45,11 @@ export class Round {
   get hole() { return this.holes[this.index]; }
   get atTee() { return this.lie.x === this.hole.tee.x && this.lie.z === this.hole.tee.z; }
   get surface() { return surfaceAt(this.hole, this.lie); }
+  get puttingRune() {
+    const surface = this.surface;
+    if (surface === 'green') return 'royal-flush';
+    return isFringe(this.hole, this.lie, surface) ? 'texas-wedge' : null;
+  }
   get remaining() { return Math.hypot(this.hole.pin.x - this.lie.x, this.hole.pin.z - this.lie.z); }
   get total() { return this.card.reduce((sum, score) => sum + score, 0); }
   get toPar() { return this.card.reduce((sum, score, i) => sum + score - this.holes[i].par, 0); }
@@ -67,7 +74,12 @@ export class Round {
   }
 
   configure(practice) {
-    practice.configure(this.club, ball => surfaceAt(this.hole, this.worldPoint(ball)));
+    const surface = ball => surfaceAt(this.hole, this.worldPoint(ball));
+    practice.configure(this.club, surface, ball => {
+      if (surface(ball) !== 'green') return FLAT;
+      const { x, z } = this.hole.green.slope ?? FLAT;
+      return { x: x * this.forward.x + z * this.forward.z, z: z * this.forward.x - x * this.forward.z };
+    });
   }
 
   selectClub(club, practice) {
@@ -101,25 +113,45 @@ export class Round {
     return { x: TEE_X + dx * x + dz * z, z: -dx * z + dz * x };
   }
 
-  canCast() {
-    return this.mana >= SPELL_MANA_COST;
+  canCast(type) {
+    return this.mana >= spellManaCost(type);
   }
 
   startShot(attemptedSpell = false) {
-    if (this.status !== 'ready' || (attemptedSpell && !this.canCast())) return false;
+    if (this.status !== 'ready' || (attemptedSpell && !this.canCast(attemptedSpell))) return false;
     this.attemptedSpell = attemptedSpell;
-    if (attemptedSpell) this.mana -= SPELL_MANA_COST;
+    if (attemptedSpell) this.mana -= spellManaCost(attemptedSpell);
     this.strokes++;
     this.previous = { ...this.lie, y: BALL_RADIUS };
     this.status = 'playing';
     return true;
   }
 
+  putt(practice, charge, spell = null, attempt = false) {
+    if (this.status !== 'ready' || this.club !== 'putter' || (attempt &&
+        (attempt !== this.puttingRune || !this.canCast(attempt))) || (spell && spell.type !== attempt)) return false;
+    const royal = spell?.type === 'royal-flush' && spell.purity >= ROYAL_FLUSH_PURITY;
+    if (royal) this.setAim(this.hole.pin);
+    this.startShot(attempt);
+    practice.putt(charge, spell, royal ? this.localPoint(this.hole.pin) : null);
+    practice.impact.runeAttempt = attempt;
+    return true;
+  }
+
+  previewPutt(charge) {
+    const practice = new Practice();
+    this.configure(practice);
+    practice.putt(charge);
+    for (let i = 0; i < 8 / STEP && (practice.ball.vx || practice.ball.vz); i++) practice.step();
+    return { distance: practice.distance, point: this.worldPoint(practice.ball) };
+  }
+
   track(practice) {
     if (this.status !== 'playing') return;
     const { ball } = practice;
     let point = { ...this.worldPoint(ball), y: ball.y };
-    if (practice.impact && hitsTree(this.hole, point, this.lie)) {
+    const { impact } = practice;
+    if (impact && !impact.royal && hitsTree(this.hole, point, this.lie)) {
       this.hitTree = true;
       Object.assign(ball, this.localPoint(this.previous), { y: BALL_RADIUS });
       practice.carry ??= practice.distance;
@@ -127,7 +159,7 @@ export class Round {
     }
     if (ball.y <= BALL_RADIUS) {
       const surface = surfaceAt(this.hole, point);
-      if (surface === 'water' || surface === 'out') {
+      if (!impact?.royal && (surface === 'water' || surface === 'out')) {
         this.strokes++;
         this.notice = (surface === 'water' ? 'Water' : 'Out of bounds') + ' · +1 penalty';
         this.endShot(practice, this.lie);
@@ -138,8 +170,9 @@ export class Round {
         return;
       }
       const speed = Math.hypot(ball.vx, ball.vz);
-      if (practice.impact && this.previous.y <= BALL_RADIUS && speed <= 3.1 &&
-          passesCup(this.previous, point, this.hole.pin)) {
+      const miss = cupMiss(this.previous, point, this.hole.pin);
+      const catches = impact?.putt ? miss <= .11 && speed <= 1.9 - 7 * miss : miss <= .19 && speed <= 3.1;
+      if (impact && this.previous.y <= BALL_RADIUS && catches) {
         Object.assign(ball, this.localPoint(this.hole.pin));
         this.endShot(practice, this.hole.pin);
         this.card.push(this.strokes);

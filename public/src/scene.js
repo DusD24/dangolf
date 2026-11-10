@@ -320,10 +320,11 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
       ctx.lineTo(dot.x, dot.y);
     }
     ctx.save();
-    ctx.lineWidth = practice.impact?.pure ? 2.6 : 1.65;
+    const gold = practice.impact?.pure || practice.impact?.royal;
+    ctx.lineWidth = gold ? 2.6 : 1.65;
     ctx.shadowBlur = practice.spell ? 11 : 5;
-    ctx.shadowColor = practice.impact?.pure ? '#ffbf7a' : '#82e6d3';
-    ctx.strokeStyle = practice.impact?.pure ? '#ffedb3' : practice.spell ? '#b0ffebba' : '#fff2baaa';
+    ctx.shadowColor = gold ? '#ffbf7a' : '#82e6d3';
+    ctx.strokeStyle = gold ? '#ffedb3' : practice.spell ? '#b0ffebba' : '#fff2baaa';
     ctx.stroke();
     ctx.restore();
   }
