@@ -6,6 +6,7 @@ export function shotCue(practice) {
   if (turfAt !== null && (!impact || turfAt <= impact.at)) {
     return { base: 'turf', rune, success: false, blast: false };
   }
+  if (impact?.putt) return { base: 'putt', rune: null, success: true, blast: false };
   if (impact) {
     const blast = rune === 'star' && impact.spellEnergy >= 1.25;
     const clean = Math.abs(practice.steer) < 0.22 &&
@@ -66,6 +67,11 @@ function tone(context, output, at, from, to, duration, volume, type = 'sine') {
 }
 
 function baseSound(context, out, at, base) {
+  if (base === 'putt') {
+    tone(context, out, at, 1120, 735, .048, .15);
+    noise(context, out, at, 1640, 790, .031, .18);
+    return;
+  }
   if (base === 'whiff') {
     noise(context, out, at, 480, 1950, .145, .55, { attack: .025, q: 1.1 });
     noise(context, out, at + .045, 1400, 430, .17, .22, { attack: .013 });

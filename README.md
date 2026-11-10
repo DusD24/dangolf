@@ -2,6 +2,14 @@
 
 A one-thumb wizard golf prototype. The practice tee runs in a phone or desktop browser.
 
+## Play Moonfen Links
+
+Choose **Play 9** at the practice tee for the first course. Moonfen Links is a par-35 nine with three par 3s, four par 4s, and two par 5s.
+
+- Open **Aim / Map** and tap a target to change your line. The club selection starts with a suggestion for your current lie.
+- Play the next shot from where the ball stops. Water and out of bounds add one stroke and send you back to the previous lie.
+- On the green, pull back to set putt power and lift to roll. Sink the putt to record the hole and advance. Open **Scorecard** to see the round so far.
+
 ## Play locally
 
 Run `npm start` and open [the practice tee](http://127.0.0.1:4173/). The server uses Python 3 and the game has no browser dependencies.

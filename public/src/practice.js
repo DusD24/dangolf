@@ -5,6 +5,7 @@ export const TEE_X = 0.20;
 const CLUB_RADIUS = 0.044;
 const TETHER_LENGTH = 0.95;
 export const FULL_PULL = 0.45;
+export const PUTT_PULL = 0.23;
 const MIN_PULL = 0.055;
 const SNAP_CUE_START = 0.068;
 const SNAP_CUE_END = 0.034;
@@ -12,6 +13,18 @@ const DRIVER_LEVERAGE = 4.7;
 const TURF_BOUNCE = 0.12;
 const TURF_SPEED_RETENTION = 0.47;
 const ROLL_DECELERATION = 8.5;
+const GREEN_DECELERATION = 3.2;
+const CLUBS = {
+  driver: { speed: 1, loft: 0 },
+  wedge: { speed: .66, loft: .28 },
+  pitch: { speed: .36, loft: .42 },
+};
+const SURFACES = {
+  fairway: { launch: 1, bounce: 1, roll: 1, putt: 1.4 },
+  green: { launch: 1, bounce: .9, roll: GREEN_DECELERATION / ROLL_DECELERATION, putt: 1 },
+  rough: { launch: .86, bounce: .78, roll: 1.4, putt: 2.2 },
+  sand: { launch: .72, bounce: .48, roll: 2.3, putt: 3.5 },
+};
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const smooth = value => value * value * (3 - 2 * value);
@@ -37,6 +50,12 @@ function crossesBall(from, to, ball) {
 
 export class Practice {
   constructor() {
+    this.configure();
+  }
+
+  configure(club = 'driver', surfaceAt = () => 'fairway') {
+    this.clubType = club;
+    this.surfaceAt = surfaceAt;
     this.reset();
   }
 
@@ -105,6 +124,13 @@ export class Practice {
     this.staffAngle = this.startAngle;
     this.club = this.clubPose();
     return true;
+  }
+
+  putt(charge) {
+    this.charge = clamp(charge, 0, 1);
+    this.ball.vx = Math.sqrt(2 * GREEN_DECELERATION * 22) * this.charge;
+    this.phase = 'result';
+    this.impact = { at: this.elapsed, putt: true, stinger: 0, curve: 0 };
   }
 
   cancelStroke() {
@@ -204,11 +230,13 @@ export class Practice {
     const runeCharge = (this.spell?.purity ?? 0) * this.charge;
     const stinger = this.spell?.type === 'sword' ? this.spell.potency : 0;
     const spellEnergy = this.spell?.type === 'star' ? 1 + 0.25 * this.spell.potency : 1;
-    const loft = Math.max(0.045, 0.055 + 0.12 * this.charge + 0.22 * snapPulse +
+    const profile = CLUBS[this.clubType];
+    const lie = SURFACES[this.surfaceAt(this.ball)] ?? SURFACES.fairway;
+    const loft = Math.max(0.045, profile.loft + 0.055 + 0.12 * this.charge + 0.22 * snapPulse +
       0.16 * runeCharge - 0.22 * stinger);
     const heading = this.steer * 0.88;
     const transfer = 0.90 - 0.17 * Math.abs(this.steer);
-    const launchSpeed = speed * transfer * DRIVER_LEVERAGE * (1 + 0.47 * runeCharge) *
+    const launchSpeed = speed * transfer * DRIVER_LEVERAGE * profile.speed * lie.launch * (1 + 0.47 * runeCharge) *
       Math.sqrt(spellEnergy * this.spellSnapEnergy);
     const horizontal = launchSpeed * Math.cos(loft);
     this.ball.vx = horizontal * Math.cos(heading);
@@ -231,7 +259,7 @@ export class Practice {
     ball.x += ball.vx * STEP;
     ball.z += ball.vz * STEP;
 
-    const { curve, stinger } = this.impact;
+    const { curve, stinger, putt } = this.impact;
     if (ball.y > BALL_RADIUS || ball.vy > 0) {
       if (curve && this.carry === null) {
         const turn = curve * STEP / Math.hypot(ball.vx, ball.vz);
@@ -247,14 +275,18 @@ export class Practice {
       this.carry ??= Math.hypot(ball.x - TEE_X, ball.z);
       ball.y = BALL_RADIUS;
       ball.vy = ball.vy < -0.60 ? -TURF_BOUNCE * ball.vy : 0;
-      const retention = TURF_SPEED_RETENTION + 0.10 * stinger;
+      const surface = SURFACES[this.surfaceAt(ball)] ?? SURFACES.fairway;
+      const retention = (TURF_SPEED_RETENTION + 0.10 * stinger) * surface.bounce;
       ball.vx *= retention;
       ball.vz *= retention;
       return;
     }
 
     const speed = Math.hypot(ball.vx, ball.vz);
-    const roll = Math.max(0, 1 - ROLL_DECELERATION * (1 - 0.30 * stinger) * STEP / speed);
+    const surface = SURFACES[this.surfaceAt(ball)] ?? SURFACES.fairway;
+    const drag = putt ? GREEN_DECELERATION * surface.putt :
+      ROLL_DECELERATION * surface.roll * (1 - 0.30 * stinger);
+    const roll = Math.max(0, 1 - drag * STEP / speed);
     ball.vx *= roll;
     ball.vz *= roll;
   }

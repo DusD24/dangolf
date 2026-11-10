@@ -1,4 +1,6 @@
 import { BALL_RADIUS, METERS_PER_YARD, TEE_X } from './practice.js';
+import { surfaceAt } from './course.js';
+import { drawCourseGround } from './course-view.js';
 import { createTeeView } from './view.js';
 
 const TAU = Math.PI * 2;
@@ -133,7 +135,7 @@ function fairway(ctx, point) {
   ctx.fillText('250 yd', flag.x + flag.scale * 4.2, flag.y + 4);
 }
 
-function grass(ctx, point, width, height, horizon) {
+function grass(ctx, point, width, height, horizon, round) {
   ctx.lineWidth = 1;
   for (let cell = -3; cell < 26; cell++) {
     for (let i = 0; i < 18; i++) {
@@ -141,6 +143,10 @@ function grass(ctx, point, width, height, horizon) {
       const z = ((i * .414214 + (cell + 3) * .31) % 1 - .5) * 10;
       const dot = point(x, 0, z);
       if (dot.x < 0 || dot.x > width || dot.y > height || dot.y < horizon) continue;
+      if (round) {
+        const surface = surfaceAt(round.hole, round.worldPoint({ x, z }));
+        if (surface !== 'fairway' && surface !== 'rough') continue;
+      }
       const h = dot.scale * (.012 + .009 * (i % 5));
       ctx.strokeStyle = i % 3 ? '#b9c38a45' : '#202d2c80';
       ctx.beginPath();
@@ -267,14 +273,15 @@ function drawGuide(ctx, guide) {
   ctx.restore();
 }
 
-export function drawScene(ctx, width, height, practice, trace, flight, guide) {
+export function drawScene(ctx, width, height, practice, trace, flight, guide, round) {
   const { point, horizon } = createTeeView(width, height);
   landscape(ctx, width, height, horizon);
-  fairway(ctx, point);
-  grass(ctx, point, width, height, horizon);
+  if (round) drawCourseGround(ctx, round, point);
+  else fairway(ctx, point);
+  grass(ctx, point, width, height, horizon, round);
 
   const tee = point(TEE_X, 0, 0);
-  const aim = point(17, 0, 0);
+  const aim = point(round?.club === 'putter' ? Math.min(5, round.remaining + TEE_X) : 17, 0, 0);
   ellipse(ctx, tee.x, tee.y, tee.scale * .17, tee.scale * .062, '#c3d69e66');
   ctx.beginPath();
   ctx.moveTo(tee.x, tee.y - tee.scale * .09);

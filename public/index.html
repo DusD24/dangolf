@@ -14,14 +14,18 @@
     <canvas id="tee" aria-label="Practice tee. Draw a rune, pull down, then swipe up and lift. Tap at contact for a bonus." aria-describedby="prompt"></canvas>
     <header class="masthead">
       <div class="brand">
-        <p class="eyebrow"><span aria-hidden="true">✦</span> Wizard golf</p>
+        <p class="eyebrow"><span aria-hidden="true">✦</span> <span id="course-name">Wizard golf</span></p>
         <h1>Dangolf</h1>
       </div>
-      <button id="reset" type="button"><span aria-hidden="true">↺</span> Reset</button>
+      <div class="top-actions">
+        <button id="play-course" type="button">Play 9</button>
+        <button id="reset" type="button"><span aria-hidden="true">↺</span> Reset</button>
+      </div>
       <dl class="stats" aria-label="Shot stats">
         <div><dt>Load</dt><dd id="load">—</dd></div>
         <div><dt>Carry</dt><dd id="carry">—</dd></div>
         <div><dt>Total</dt><dd id="distance">—</dd></div>
+        <div id="pin-stat" hidden><dt>To pin</dt><dd id="to-pin">—</dd></div>
       </dl>
       <div class="spell-tools">
         <select id="spell-mode" aria-label="Spell difficulty">
@@ -35,11 +39,45 @@
           <option value="star">Five-point star</option>
         </select>
       </div>
+      <div class="course-tools" hidden>
+        <p id="hole-info" class="eyebrow"></p>
+        <div class="course-actions">
+          <select id="club-choice" aria-label="Club">
+            <option value="driver">Driver</option>
+            <option value="wedge">Wedge</option>
+            <option value="pitch">Pitch</option>
+            <option value="putter">Putter</option>
+          </select>
+          <button id="hole-map" type="button">Aim / Map</button>
+          <button id="scorecard" type="button">Scorecard</button>
+        </div>
+        <button id="round-next" type="button" hidden>Play next shot</button>
+      </div>
       <div class="instructions">
         <p class="eyebrow" id="phase" role="status">Practice tee</p>
         <p id="prompt">Start at the gold dot. Trace, pull, then swipe up.</p>
       </div>
     </header>
+    <dialog id="round-dialog" aria-labelledby="dialog-title">
+      <div class="dialog-heading">
+        <h2 id="dialog-title"></h2>
+        <form method="dialog"><button aria-label="Close" value="close">Close</button></form>
+      </div>
+      <section id="map-content" hidden>
+        <p id="map-tip"></p>
+        <canvas id="map-canvas" width="360" height="420" aria-label="Overhead hole map. Tap a target to aim."></canvas>
+        <div class="map-legend"><span>● Ball</span><span>● Pin</span><span>● Water</span><span>● Bunker</span></div>
+        <button id="aim-at-pin" type="button">Aim at the pin</button>
+      </section>
+      <section id="card-content" hidden>
+        <table>
+          <thead><tr><th scope="col">Hole</th><th scope="col">Par</th><th scope="col">Yards</th><th scope="col">Strokes</th></tr></thead>
+          <tbody id="card-rows"></tbody>
+          <tfoot><tr><th scope="row">Total</th><td id="card-par"></td><td id="card-yards"></td><td id="card-strokes"></td></tr></tfoot>
+        </table>
+        <p id="card-total"></p>
+      </section>
+    </dialog>
   </main>
 </body>
 </html>
