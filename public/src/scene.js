@@ -1,4 +1,5 @@
 import { BALL_RADIUS, TEE_X } from './practice.js';
+import { createTeeView } from './view.js';
 
 const TAU = Math.PI * 2;
 
@@ -26,7 +27,7 @@ function gradient(ctx, top, bottom, height) {
   return color;
 }
 
-function landscape(ctx, width, height, camera) {
+function landscape(ctx, width, height, horizon) {
   const sky = ctx.createLinearGradient(0, 0, 0, height * 0.54);
   sky.addColorStop(0, '#1b263c');
   sky.addColorStop(0.56, '#52465c');
@@ -56,49 +57,87 @@ function landscape(ctx, width, height, camera) {
     ctx.beginPath();
     ctx.moveTo(0, height);
     for (let x = 0; x <= width + 14; x += 14) {
-      const a = x / width + camera.x * (0.004 + layer * 0.004);
+      const a = x / width;
       const wave = Math.sin(a * (8 + layer) + layer) * 0.042 + Math.sin(a * 26 + layer) * 0.012;
-      ctx.lineTo(x, height * (0.39 + layer * 0.024 + wave));
+      ctx.lineTo(x, horizon + height * (-0.096 + layer * 0.024 + wave));
     }
     ctx.lineTo(width, height);
     ctx.fillStyle = color;
     ctx.fill();
   }
 
-  const horizon = height * 0.52;
+  const ground = horizon + height * .025;
   ctx.save();
-  ctx.translate(0, horizon);
-  ctx.fillStyle = gradient(ctx, '#36584b', '#192f2a', height - horizon);
-  ctx.beginPath();
-  ctx.moveTo(0, 7);
-  ctx.quadraticCurveTo(width * 0.56, -height * 0.066, width, 0);
-  ctx.lineTo(width, height - horizon);
-  ctx.lineTo(0, height - horizon);
-  ctx.fill();
-
-  for (let i = 1; i < 6; i++) {
-    const y = (height - horizon) * i * i / 36;
-    ctx.strokeStyle = i % 2 ? '#d5cf9630' : '#182d2b38';
-    ctx.lineWidth = 1 + i * 0.36;
-    ctx.beginPath();
-    ctx.moveTo(0, y + 7);
-    ctx.quadraticCurveTo(width * .54, y - 10 - i * 3, width, y);
-    ctx.stroke();
-  }
+  ctx.translate(0, ground);
+  ctx.fillStyle = gradient(ctx, '#435943', '#1b392e', height - ground);
+  ctx.fillRect(0, 0, width, height - ground);
   ctx.restore();
 }
 
-function grass(ctx, point, scale, width, height, camera) {
-  const base = Math.floor(camera.x);
+function rangeWidth(depth) {
+  return 1.55 + 2.25 * (1 - Math.exp(-Math.max(0, depth) / 9));
+}
+
+function fairway(ctx, point) {
+  const stripes = [-3.45, -1.1, 1.6, 4.3, 7.5, 11, 16, 23, 32, 45, 60, 78];
+  for (let index = stripes.length - 1; index > 0; index--) {
+    const near = stripes[index - 1];
+    const far = stripes[index];
+    const nearEdge = rangeWidth(near);
+    const farEdge = rangeWidth(far);
+    const corners = [
+      point(near, 0, -nearEdge),
+      point(far, 0, -farEdge),
+      point(far, 0, farEdge),
+      point(near, 0, nearEdge),
+    ];
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    for (const corner of corners.slice(1)) ctx.lineTo(corner.x, corner.y);
+    ctx.closePath();
+    ctx.fillStyle = index % 2 ? '#55754f' : '#486747';
+    ctx.fill();
+  }
+
+  for (const depth of [5, 10, 15]) {
+    for (const side of [-1, 1]) {
+      const z = side * rangeWidth(depth) * .94;
+      const ground = point(depth, 0, z);
+      const top = point(depth, .22, z);
+      ctx.strokeStyle = '#e8d8b0a0';
+      ctx.lineWidth = Math.max(1, top.scale * .023);
+      ctx.beginPath();
+      ctx.moveTo(ground.x, ground.y);
+      ctx.lineTo(top.x, top.y);
+      ctx.stroke();
+    }
+  }
+
+  const target = point(24, 0, 0);
+  const flag = point(24, .91, 0);
+  ellipse(ctx, target.x, target.y, target.scale * .50, target.scale * .13, '#bac18860');
+  ctx.beginPath();
+  ctx.moveTo(target.x, target.y);
+  ctx.lineTo(flag.x, flag.y);
+  ctx.lineTo(flag.x + flag.scale * .49, flag.y + flag.scale * .10);
+  ctx.lineTo(flag.x, flag.y + flag.scale * .23);
+  ctx.strokeStyle = '#f2dbad';
+  ctx.lineWidth = 1.4;
+  ctx.fillStyle = '#e7b16c';
+  ctx.stroke();
+  ctx.fill();
+}
+
+function grass(ctx, point, width, height, horizon) {
   ctx.lineWidth = 1;
-  for (let cell = base - 8; cell <= base + 8; cell++) {
-    for (let i = 0; i < 24; i++) {
+  for (let cell = -3; cell < 26; cell++) {
+    for (let i = 0; i < 18; i++) {
       const x = cell + ((i * .618034) % 1);
-      const z = camera.z + ((i * .414214 + cell * .31) % 1) * 4.6;
+      const z = ((i * .414214 + (cell + 3) * .31) % 1 - .5) * 10;
       const dot = point(x, 0, z);
-      if (dot.x < 0 || dot.x > width || dot.y > height || dot.y < height * .53) continue;
-      const h = scale * (.012 + .009 * (i % 5));
-      ctx.strokeStyle = i % 3 ? '#b9c38a45' : '#202d2cb5';
+      if (dot.x < 0 || dot.x > width || dot.y > height || dot.y < horizon) continue;
+      const h = dot.scale * (.012 + .009 * (i % 5));
+      ctx.strokeStyle = i % 3 ? '#b9c38a45' : '#202d2c80';
       ctx.beginPath();
       ctx.moveTo(dot.x - h * .4, dot.y - h * .62);
       ctx.lineTo(dot.x, dot.y);
@@ -129,16 +168,13 @@ function wizard(ctx, foot, grip, staffTop, club, practice, scale) {
   robe.addColorStop(1, '#2b314d');
 
   shape(ctx, 'M-14 -104 Q-33 -98 -32 -73 Q-25 -56 -25 -35 L-33 -9 Q-10 -1 24 -9 L28 -19 Q11 -44 16 -73 Q22 -96 2 -104 Z', robe, '#26283e');
-  shape(ctx, 'M-12 -94 Q-23 -67 -9 -46 L-16 -12 Q-6 -8 5 -12 L8 -22 Q-1 -55 10 -91 Z', '#8971a4a0');
-  shape(ctx, 'M-25 -51 Q-8 -44 17 -49 L19 -43 Q-5 -37 -25 -44 Z', '#332739');
-  ellipse(ctx, 5, -45, 5, 4, '#dca66e');
-  shape(ctx, 'M-25 -89 Q-25 -104 -14 -111 Q-3 -117 12 -109 Q18 -102 15 -88 L22 -78 Q9 -67 -16 -78 Z', '#3b3b5b', '#29293f');
-
-  shape(ctx, 'M-16 -130 Q-18 -148 5 -148 Q20 -146 21 -126 L29 -120 Q28 -116 20 -116 L20 -107 Q8 -96 -6 -101 Q-16 -110 -16 -130 Z', '#d2a18a', '#56394d');
-  ellipse(ctx, 15, -127, 2.3, 1.8, '#292033');
-  shape(ctx, 'M6 -128 Q13 -134 19 -130 L19 -127 Q12 -129 6 -126 Z', '#e3d6cd');
-  shape(ctx, 'M-17 -127 Q-4 -130 -1 -115 Q11 -111 23 -117 Q22 -105 17 -100 Q22 -82 3 -68 Q7 -79 -8 -89 Q-21 -104 -17 -127 Z', '#ddd1ca', '#9d8e9c');
-  shape(ctx, 'M-10 -109 Q-1 -101 5 -100 Q3 -90 9 -82 Q-1 -88 -5 -96 Z', '#ae9da8');
+  shape(ctx, 'M-19 -102 Q-30 -70 -21 -47 L-31 -10 Q-8 -1 20 -10 L12 -45 Q4 -67 15 -100 Z', '#72638a', '#403856');
+  shape(ctx, 'M-10 -88 Q-16 -54 -11 -29 L-15 -12 L-8 -12 Q-1 -43 -5 -60 L-5 -88 Z', '#a294af83');
+  shape(ctx, 'M-22 -94 Q-19 -110 1 -113 Q18 -113 20 -95 Q14 -84 2 -80 Q-12 -82 -22 -94 Z', '#403859', '#2c2b43');
+  shape(ctx, 'M-15 -95 Q0 -89 15 -99 Q12 -88 2 -85 Q-9 -87 -15 -95 Z', '#8b7794');
+  shape(ctx, 'M-15 -131 Q-12 -148 7 -146 Q23 -144 22 -125 L28 -120 L21 -117 L19 -107 Q1 -100 -11 -112 Z', '#cb9a83', '#56394d');
+  shape(ctx, 'M-16 -139 Q5 -146 14 -135 Q9 -126 12 -114 Q4 -107 -7 -110 Q-18 -118 -16 -139 Z', '#bcb1bd', '#8d7f96');
+  shape(ctx, 'M19 -121 L26 -119 L21 -110 Q23 -95 14 -88 L12 -100 L15 -109 Z', '#e7d7ca', '#9d8e9c');
   shape(ctx, 'M-18 -145 Q-18 -156 -11 -168 L10 -182 L2 -166 Q12 -164 23 -145 Z', '#51466e', '#302e4c');
   shape(ctx, 'M-19 -150 Q-2 -146 19 -151 L23 -144 Q5 -139 -21 -143 Z', '#c38d64');
   shape(ctx, 'M-34 -144 Q-21 -148 2 -146 Q17 -145 32 -149 Q33 -141 20 -137 Q-11 -134 -34 -139 Z', '#414166', '#2a2d45');
@@ -201,29 +237,25 @@ function sparks(ctx, origin, age, scale, color, count) {
   ctx.restore();
 }
 
-export function drawScene(ctx, width, height, practice, camera, trace) {
-  const scale = Math.min(width / 3.25, height / 4.5);
-  const point = (x, y, z) => ({
-    x: width * .43 + (x - camera.x + (z - camera.z) * .40) * scale,
-    y: height * .645 + ((z - camera.z) * .31 - (x - camera.x) * .036 - y) * scale,
-  });
-
-  landscape(ctx, width, height, camera);
-  grass(ctx, point, scale, width, height, camera);
+export function drawScene(ctx, width, height, practice, trace, flight) {
+  const { point, horizon } = createTeeView(width, height);
+  landscape(ctx, width, height, horizon);
+  fairway(ctx, point);
+  grass(ctx, point, width, height, horizon);
 
   const tee = point(TEE_X, 0, 0);
-  const aim = point(TEE_X + 2.3, 0, 0);
-  ellipse(ctx, tee.x, tee.y, scale * .19, scale * .043, '#c3d69e3c');
+  const aim = point(17, 0, 0);
+  ellipse(ctx, tee.x, tee.y, tee.scale * .17, tee.scale * .062, '#c3d69e66');
   ctx.beginPath();
-  ctx.moveTo(tee.x + scale * .22, tee.y);
+  ctx.moveTo(tee.x, tee.y - tee.scale * .09);
   ctx.lineTo(aim.x, aim.y);
-  ctx.setLineDash([scale * .047, scale * .07]);
-  ctx.strokeStyle = '#dfdb9e77';
-  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 7]);
+  ctx.strokeStyle = '#f0e2ac9c';
+  ctx.lineWidth = 1.2;
   ctx.stroke();
   ctx.setLineDash([]);
 
-  const foot = point(-.41, 0, -.06);
+  const foot = point(-.43, 0, -.76);
   const grip = point(0, 1.005, practice.steer * .10);
   const staffTop = point(
     Math.sin(practice.staffAngle) * .34,
@@ -231,32 +263,34 @@ export function drawScene(ctx, width, height, practice, camera, trace) {
     practice.steer * .10,
   );
   const club = point(practice.club.x, practice.club.y, practice.club.z);
-  if (foot.x > -scale && foot.x < width + scale) {
-    wizard(ctx, foot, grip, staffTop, club, practice, scale);
+  wizard(ctx, foot, grip, staffTop, club, practice, foot.scale);
+
+  if (flight.length > 1) {
+    const start = point(flight[0].x, flight[0].y, flight[0].z);
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    for (const sample of flight.slice(1)) {
+      const dot = point(sample.x, sample.y, sample.z);
+      ctx.lineTo(dot.x, dot.y);
+    }
+    ctx.lineWidth = 1.75;
+    ctx.strokeStyle = '#fff2baaa';
+    ctx.stroke();
   }
 
   const { ball } = practice;
   const ballPoint = point(ball.x, ball.y, ball.z);
   const shadow = point(ball.x, 0, ball.z);
-  const radius = Math.max(3.2, BALL_RADIUS * scale);
+  const radius = Math.max(2.3, BALL_RADIUS * ballPoint.scale);
   ellipse(ctx, shadow.x, shadow.y, radius * 1.6, radius * .45, '#11222cb0');
-  if (ball.y > BALL_RADIUS + .06 && practice.impact) {
-    const tail = point(ball.x - ball.vx * .052, ball.y - ball.vy * .052, ball.z - ball.vz * .052);
-    ctx.beginPath();
-    ctx.moveTo(tail.x, tail.y);
-    ctx.lineTo(ballPoint.x, ballPoint.y);
-    ctx.strokeStyle = '#fdf0bd70';
-    ctx.lineWidth = radius * .70;
-    ctx.stroke();
-  }
   ellipse(ctx, ballPoint.x, ballPoint.y, radius, radius, '#fff7de');
   ellipse(ctx, ballPoint.x + radius * .25, ballPoint.y + radius * .30, radius * .43, radius * .27, '#b1b49f');
 
   if (practice.impact) {
-    sparks(ctx, tee, practice.elapsed - practice.impact.at, scale, '#ffefae', 11);
+    sparks(ctx, tee, practice.elapsed - practice.impact.at, tee.scale, '#ffefae', 11);
   }
   if (practice.turfAt !== null) {
-    sparks(ctx, point(-.07, .03, practice.steer * .10), practice.elapsed - practice.turfAt, scale, '#c6ad73', 14);
+    sparks(ctx, point(-.07, .03, practice.steer * .10), practice.elapsed - practice.turfAt, tee.scale, '#c6ad73', 14);
   }
 
   if (trace.length > 1) {

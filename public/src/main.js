@@ -1,4 +1,4 @@
-import { Practice, STEP } from './practice.js';
+import { BALL_RADIUS, Practice, STEP } from './practice.js';
 import { drawScene } from './scene.js';
 
 const canvas = document.querySelector('#tee');
@@ -11,7 +11,7 @@ const carry = document.querySelector('#carry');
 const distance = document.querySelector('#distance');
 
 const practice = new Practice();
-const camera = { x: 0, z: 0 };
+const flight = [];
 let width = 0;
 let height = 0;
 let pointer = null;
@@ -43,8 +43,7 @@ function reset() {
   pointer = null;
   trace = [];
   practice.reset();
-  camera.x = 0;
-  camera.z = 0;
+  flight.length = 0;
   accumulator = 0;
 }
 
@@ -145,14 +144,14 @@ function updateFeedback() {
 }
 
 function frame() {
-  const now = performance.now();
-  const blend = 1 - Math.exp(-Math.max(0, now - lastFrame) / 175);
-  advance(now);
-  if (practice.impact) {
-    camera.x += (Math.max(0, practice.ball.x - 0.78) - camera.x) * blend;
-    camera.z += (practice.ball.z - camera.z) * blend;
+  advance(performance.now());
+  const { ball } = practice;
+  const lastSample = flight.at(-1);
+  if (practice.impact && practice.carry === null && ball.y > BALL_RADIUS &&
+      (!lastSample || practice.elapsed - lastSample.at >= 1 / 60)) {
+    flight.push({ x: ball.x, y: ball.y, z: ball.z, at: practice.elapsed });
   }
-  drawScene(ctx, width, height, practice, camera, trace);
+  drawScene(ctx, width, height, practice, trace, flight);
   updateFeedback();
   requestAnimationFrame(frame);
 }

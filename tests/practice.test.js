@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Practice, STEP } from '../public/src/practice.js';
 
-function startSwing(practice, depth = 0.27, drift = 0) {
+function startSwing(practice, depth = 0.44, drift = 0) {
   practice.beginStroke(0.5, 0.3);
   practice.moveStroke(0.5, 0.3 + depth);
   practice.moveStroke(0.5 + drift, 0.3 + depth / 2);
@@ -37,7 +37,7 @@ test('a longer pull produces a faster square strike', () => {
   const short = new Practice();
   const long = new Practice();
   startSwing(short, 0.10);
-  startSwing(long, 0.27);
+  startSwing(long, 0.44);
   simulate(short, 1);
   simulate(long, 1);
   assert.ok(long.impact.speed > short.impact.speed * 1.25);
@@ -46,8 +46,8 @@ test('a longer pull produces a faster square strike', () => {
 test('small drift is forgiven while a bent swipe sends the ball off line', () => {
   const slight = new Practice();
   const bent = new Practice();
-  startSwing(slight, 0.27, 0.013);
-  startSwing(bent, 0.27, 0.075);
+  startSwing(slight, 0.44, 0.013);
+  startSwing(bent, 0.44, 0.075);
   simulate(slight, 1.5);
   simulate(bent, 1.5);
   assert.ok(slight.impact);
@@ -59,7 +59,7 @@ test('small drift is forgiven while a bent swipe sends the ball off line', () =>
 test('a badly crooked swipe can miss without moving the ball', () => {
   const practice = new Practice();
   const start = { ...practice.ball };
-  startSwing(practice, 0.27, 0.22);
+  startSwing(practice, 0.44, 0.22);
   simulate(practice, 1.4);
   assert.equal(practice.impact, null);
   assert.equal(practice.ball.x, start.x);
@@ -128,7 +128,7 @@ test('cancelling and resetting make a fresh attempt immediately possible', () =>
 });
 
 test('the best straight snap timing is inside the visible cue', () => {
-  for (const depth of [0.056, 0.10, 0.27]) {
+  for (const depth of [0.056, 0.10, 0.44]) {
     let best;
     for (let tapStep = 0; tapStep < 70; tapStep++) {
       const practice = new Practice();
@@ -157,4 +157,18 @@ test('an early snap at the start of a shallow stroke weakens contact', () => {
   simulate(plain, 8);
   assert.ok(early.turfAt !== null);
   assert.ok(early.distance < plain.distance);
+});
+
+test('a pull past the old power cap still loads more power', () => {
+  const practice = new Practice();
+  practice.beginStroke(0.5, 0.2);
+  practice.moveStroke(0.5, 0.48);
+  const oldCap = practice.charge;
+  practice.moveStroke(0.5, 0.60);
+  const deeperPull = practice.charge;
+  assert.ok(oldCap < deeperPull);
+  assert.ok(deeperPull < 1);
+  practice.moveStroke(0.5, 0.65);
+  assert.ok(practice.releaseStroke(0.5, 0.2));
+  assert.ok(practice.charge >= 0.99);
 });
