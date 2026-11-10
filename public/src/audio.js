@@ -1,5 +1,25 @@
 import { TEE_X } from './practice.js';
 
+export function playTitleOnStart() {
+  const announcer = new Audio(new URL('../audio/dang-golf.mp3', import.meta.url));
+  announcer.preload = 'auto';
+  announcer.volume = .85;
+  const gestures = ['pointerup', 'click', 'keydown'];
+  let requested = false;
+
+  function start() {
+    if (requested) return;
+    requested = true;
+    announcer.play().then(() => {
+      for (const gesture of gestures) document.removeEventListener(gesture, start, true);
+    }).catch(() => { requested = false; });
+  }
+
+  // Retry within the first gesture when the browser blocks audible autoplay.
+  for (const gesture of gestures) document.addEventListener(gesture, start, true);
+  start();
+}
+
 export function shotCue(practice) {
   const { phase, impact, contact, turfAt, spell } = practice;
   const rune = spell?.type ?? null;

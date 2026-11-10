@@ -1,4 +1,4 @@
-import { createShotAudio, shotCue } from './audio.js';
+import { createShotAudio, playTitleOnStart, shotCue } from './audio.js';
 import { COURSE, COURSE_NAME, surfaceAt } from './course.js';
 import { greenRead, pinDistance, puttAimTarget } from './course-map.js';
 import { createGear } from './gear.js';
@@ -33,6 +33,7 @@ const distance = document.querySelector('#distance');
 
 const practice = new Practice();
 const audio = createShotAudio();
+playTitleOnStart();
 const flight = [];
 let round = null;
 let rangeClub = 'driver';
