@@ -9,9 +9,12 @@ import { analyzeStroke, runeExit, RUNES } from './spells.js';
 const canvas = document.querySelector('#tee');
 const ctx = canvas.getContext('2d');
 const header = document.querySelector('.masthead');
+const controls = document.querySelector('.thumb-controls');
 const resetButton = document.querySelector('#reset');
 const playCourse = document.querySelector('#play-course');
 const clubChoice = document.querySelector('#club-choice');
+const holeMapButton = document.querySelector('#hole-map');
+const scorecardButton = document.querySelector('#scorecard');
 const courseName = document.querySelector('#course-name');
 const roundNext = document.querySelector('#round-next');
 const holeInfo = document.querySelector('#hole-info');
@@ -49,8 +52,12 @@ let accumulator = 0;
 function layoutGuide() {
   const shortSide = Math.min(width, height);
   const pull = FULL_PULL * shortSide;
-  const scale = Math.min(94, shortSide * .25);
-  const preferredY = header.getBoundingClientRect().bottom + scale + 12;
+  const guideTop = header.getBoundingClientRect().bottom + 12;
+  const bottom = controls.getBoundingClientRect().top - pull - 8;
+  const scale = Math.min(94, shortSide * .25, Math.max(shortSide * .10, bottom - guideTop));
+  const minY = guideTop + scale;
+  const maxY = Math.max(minY, bottom);
+  const preferredY = Math.min(Math.max(minY, height * .40), maxY);
   guideLayout = {
     x: width * .76,
     y: Math.min(preferredY, height - pull - 15),
@@ -262,8 +269,8 @@ function openScorecard() {
   if (!dialog.open) dialog.showModal();
 }
 
-document.querySelector('#scorecard').addEventListener('click', openScorecard);
-document.querySelector('#hole-map').addEventListener('click', () => {
+scorecardButton.addEventListener('click', openScorecard);
+holeMapButton.addEventListener('click', () => {
   document.querySelector('#dialog-title').textContent = (round.index + 1) + ' · ' + round.hole.name;
   mapContent.hidden = false;
   cardContent.hidden = true;
@@ -286,7 +293,7 @@ mapCanvas.addEventListener('click', event => {
 });
 aimAtPin.addEventListener('click', () => aimAt(round.hole.pin));
 
-const courseTools = document.querySelector('.course-tools');
+const choices = document.querySelector('.choices');
 const spellTools = document.querySelector('.spell-tools');
 const pinStat = document.querySelector('#pin-stat');
 const lieLabels = { fairway: 'Fairway', green: 'Green', rough: 'Rough', sand: 'Bunker' };
@@ -295,13 +302,19 @@ function updateCourse() {
   const putting = round?.club === 'putter';
   spellTools.hidden = putting;
   guideSelect.hidden = mode.value === 'hard';
-  courseTools.hidden = !round;
+  holeInfo.hidden = !round;
   pinStat.hidden = !round;
+  clubChoice.hidden = !round;
+  holeMapButton.hidden = !round;
+  scorecardButton.hidden = !round;
   resetButton.hidden = Boolean(round);
+  const canAdvance = round && ['shot-over', 'holed', 'complete'].includes(round.status);
+  roundNext.hidden = !canAdvance;
+  choices.hidden = Boolean(canAdvance);
+  playCourse.disabled = round?.status === 'playing';
   show(playCourse, round ? 'Practice' : 'Play 9');
   show(courseName, round ? COURSE_NAME : 'Wizard golf');
   if (!round) return;
-  playCourse.disabled = round.status === 'playing';
   const ready = round.status === 'ready' && practice.phase === 'ready';
   clubChoice.disabled = !ready;
   if (clubChoice.value !== round.club) clubChoice.value = round.club;
@@ -311,7 +324,6 @@ function updateCourse() {
     (round.status === 'complete' ? scoreLabel(round.toPar) : lie + ' · ' + round.strokes + ' strokes'));
   const ball = round.landing ?? (round.status === 'playing' ? round.worldPoint(practice.ball) : round.lie);
   show(toPin, pinDistance(Math.hypot(hole.pin.x - ball.x, hole.pin.z - ball.z)));
-  roundNext.hidden = !['shot-over', 'holed', 'complete'].includes(round.status);
   show(roundNext, round.status === 'shot-over' ? 'Play next shot' :
     round.status === 'complete' ? 'Play again' : round.index === 8 ? 'Finish round' : 'Next hole');
 }

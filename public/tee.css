@@ -35,18 +35,15 @@ p, h1, dl, dd { margin: 0; }
   left: max(var(--edge), env(safe-area-inset-left));
   right: max(var(--edge), env(safe-area-inset-right));
   display: grid;
-  grid-template: "brand reset" "stats stats" "tools tools" "instructions instructions" / 1fr auto;
+  grid-template-areas: "brand" "stats" "course" "instructions";
   align-items: start;
-  gap: 10px 14px;
+  gap: 8px 14px;
   pointer-events: none;
   text-shadow: 0 2px 6px #101924;
 }
 
 .brand { grid-area: brand; }
-.top-actions { grid-area: reset; display: flex; justify-content: flex-end; gap: 6px; }
-.masthead:has(.course-tools:not([hidden])) {
-  grid-template-areas: "brand reset" "stats stats" "course course" "tools tools" "instructions instructions";
-}
+#hole-info { grid-area: course; }
 
 .eyebrow {
   color: #eac380;
@@ -79,18 +76,34 @@ button {
 button:hover, button:focus-visible { background: #323b44; }
 button:focus-visible { outline: 2px solid #eac380; outline-offset: 3px; }
 
-.spell-tools {
-  grid-area: tools;
+.thumb-controls {
+  position: absolute;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 10px;
+  pointer-events: none;
 }
 
-.spell-tools select, .course-actions select {
-  min-height: 36px;
+.choices, .spell-tools, .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.actions { justify-content: flex-end; margin-inline-start: auto; }
+
+.thumb-controls select {
+  min-height: 44px;
   max-width: 100%;
   border: 1px solid #eac38066;
   border-radius: 6px;
-  padding: 0 8px;
+  padding: 0 7px;
   background: #142131dc;
   color: inherit;
   font: 650 .8rem system-ui, sans-serif;
@@ -114,24 +127,18 @@ select:focus-visible { outline: 2px solid #eac380; outline-offset: 2px; }
 
 @media (min-width: 650px) {
   .masthead {
-    grid-template: "brand stats reset" "tools instructions instructions" / 1fr auto auto;
+    grid-template: "brand stats" "course instructions" / 1fr auto;
     align-items: center;
   }
-  .masthead:has(.course-tools:not([hidden])) {
-    grid-template-areas: "brand stats reset" "course course course" "tools instructions instructions";
-  }
+  .thumb-controls { left: var(--edge); right: var(--edge); }
 }
 
 @media (max-height: 440px) {
   .masthead { gap: 6px 18px; }
   h1 { font-size: 2.25rem; }
-  .spell-tools select, .course-actions select { min-height: 30px; }
 }
 
-.course-tools { grid-area: course; }
-.course-actions { display: flex; gap: 6px; margin-top: 5px; }
-.course-actions button, #round-next { min-height: 36px; }
-#round-next { margin-top: 7px; background: #dcb378; color: #211f22; }
+#round-next { background: #dcb378; color: #211f22; }
 button:disabled, select:disabled { opacity: .55; cursor: default; }
 
 #round-dialog {
@@ -161,6 +168,6 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
 
 @media (max-width: 360px) {
   .masthead { column-gap: 8px; }
-  .top-actions button { padding-inline: 8px; }
+  .thumb-controls button { padding-inline: 8px; }
   h1 { font-size: 2.1rem; }
 }

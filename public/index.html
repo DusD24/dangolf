@@ -17,47 +17,47 @@
         <p class="eyebrow"><span aria-hidden="true">✦</span> <span id="course-name">Wizard golf</span></p>
         <h1>Dangolf</h1>
       </div>
-      <div class="top-actions">
-        <button id="play-course" type="button">Play 9</button>
-        <button id="reset" type="button"><span aria-hidden="true">↺</span> Reset</button>
-      </div>
       <dl class="stats" aria-label="Shot stats">
         <div><dt>Load</dt><dd id="load">—</dd></div>
         <div><dt>Carry</dt><dd id="carry">—</dd></div>
         <div><dt>Total</dt><dd id="distance">—</dd></div>
         <div id="pin-stat" hidden><dt>To pin</dt><dd id="to-pin">—</dd></div>
       </dl>
-      <div class="spell-tools">
-        <select id="spell-mode" aria-label="Spell difficulty">
-          <option value="guided">Guided</option>
-          <option value="hard">Hard</option>
-        </select>
-        <select id="rune-guide" aria-label="Rune to trace">
-          <option value="crescent-right">Crescent →</option>
-          <option value="crescent-left">Crescent ←</option>
-          <option value="sword">Sword</option>
-          <option value="star">Five-point star</option>
-        </select>
-      </div>
-      <div class="course-tools" hidden>
-        <p id="hole-info" class="eyebrow"></p>
-        <div class="course-actions">
-          <select id="club-choice" aria-label="Club">
-            <option value="driver">Driver</option>
-            <option value="wedge">Wedge</option>
-            <option value="pitch">Pitch</option>
-            <option value="putter">Putter</option>
-          </select>
-          <button id="hole-map" type="button">Aim / Map</button>
-          <button id="scorecard" type="button">Scorecard</button>
-        </div>
-        <button id="round-next" type="button" hidden>Play next shot</button>
-      </div>
+      <p id="hole-info" class="eyebrow" hidden></p>
       <div class="instructions">
         <p class="eyebrow" id="phase" role="status">Practice tee</p>
         <p id="prompt">Start at the gold dot. Trace, pull, then swipe up.</p>
       </div>
     </header>
+    <footer class="thumb-controls" aria-label="Game controls">
+      <div class="choices">
+        <div class="spell-tools">
+          <select id="spell-mode" aria-label="Spell difficulty">
+            <option value="guided">Guided</option>
+            <option value="hard">Hard</option>
+          </select>
+          <select id="rune-guide" aria-label="Rune to trace">
+            <option value="crescent-right">Crescent →</option>
+            <option value="crescent-left">Crescent ←</option>
+            <option value="sword">Sword</option>
+            <option value="star">Five-point star</option>
+          </select>
+        </div>
+        <select id="club-choice" aria-label="Club" hidden>
+          <option value="driver">Driver</option>
+          <option value="wedge">Wedge</option>
+          <option value="pitch">Pitch</option>
+          <option value="putter">Putter</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button id="hole-map" type="button" hidden>Aim / Map</button>
+        <button id="scorecard" type="button" hidden>Scorecard</button>
+        <button id="play-course" type="button">Play 9</button>
+        <button id="reset" type="button"><span aria-hidden="true">↺</span> Reset</button>
+        <button id="round-next" type="button" hidden>Play next shot</button>
+      </div>
+    </footer>
     <dialog id="round-dialog" aria-labelledby="dialog-title">
       <div class="dialog-heading">
         <h2 id="dialog-title"></h2>
