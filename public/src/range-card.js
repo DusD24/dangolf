@@ -1,6 +1,7 @@
 import { FULL_PULL, METERS_PER_YARD, Practice, STEP } from './practice.js';
 
 export const POWER_MARKS = [25, 50, 75, 100];
+export const PREVIEW_PURITY = .95;
 const ranges = new Map();
 
 function simulate(club, power, snap, surface, spell = null) {
@@ -28,8 +29,8 @@ function simulate(club, power, snap, surface, spell = null) {
 
 export function shotRanges(club, surface = 'fairway', rune = null, mode = 'hard') {
   const putting = club === 'putter';
-  const spell = !putting && rune ? { ...rune, purity: 1, guided: mode === 'guided',
-    potency: mode === 'guided' ? .6 : 1 } : null;
+  const spell = !putting && rune ? { ...rune, purity: PREVIEW_PURITY, guided: mode === 'guided',
+    potency: PREVIEW_PURITY * (mode === 'guided' ? .6 : 1) } : null;
   const key = [club, surface, spell?.id, spell?.guided].join('/');
   if (!ranges.has(key)) {
     ranges.set(key, POWER_MARKS.map(power => {

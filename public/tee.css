@@ -208,6 +208,7 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
 .dialog-heading { padding-bottom: 9px; border-bottom: 1px solid #bd906759; }
 .gear-dialog { width: min(470px, calc(100% - 24px)); }
 .panel-note { color: #d7c8b8; font-size: .76rem; line-height: 1.45; margin: 7px 0 10px; }
+.mana-plan { color: #bdf6e5; border-left: 2px solid #88d9c8; padding-left: 6px; }
 .spell-loadout, .rune-grid, .club-grid { display: grid; gap: 7px; }
 .spell-loadout { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .spell-loadout .gear-slot {
@@ -388,9 +389,17 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
 #card-content tbody tr[aria-current] { color: #f0c88a; }
 #card-total { margin-top: 12px; font-weight: 700; }
 
+@media (max-width: 420px) {
+  .actions:has(#cancel-spell:not([hidden])) { gap: 4px; }
+  .actions:has(#cancel-spell:not([hidden])) button { font-size: .73rem; padding-inline: 6px; }
+  .actions:has(#cancel-spell:not([hidden])) #hole-map::before,
+  .actions:has(#cancel-spell:not([hidden])) #scorecard::before { content: none; }
+}
+
 @media (max-width: 360px) {
   .masthead { column-gap: 8px; }
   .thumb-controls button { padding-inline: 7px; }
+  #cancel-spell span { display: none; }
   .gear-slot { gap: 4px; }
   .gear-slot svg { width: 17px; height: 17px; }
   .gear-slot strong { font-size: .79rem; }

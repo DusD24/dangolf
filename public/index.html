@@ -45,6 +45,7 @@
         <button class="gear-slot" id="club-choice" type="button" aria-haspopup="dialog">Club bag</button>
       </div>
       <div class="actions">
+        <button id="cancel-spell" type="button" aria-label="Cancel spell" hidden>Cancel<span> spell</span></button>
         <button id="hole-map" type="button" hidden>Aim / Map</button>
         <button id="scorecard" type="button" hidden>Scorecard</button>
         <button id="play-course" type="button">Play 9</button>
@@ -68,9 +69,10 @@
         <div class="range-card">
           <div class="range-heading"><strong id="bag-selected"></strong><span id="bag-metric"></span></div>
           <p class="panel-note" id="bag-range-note">Flat range estimates.</p>
+          <p class="panel-note mana-plan" id="bag-mana-plan" hidden></p>
           <table>
             <thead><tr><th scope="col">Power</th><th scope="col">Plain</th><th scope="col">Snap</th>
-              <th scope="col" data-spell-range>Pure</th><th scope="col" data-spell-range>Pure + snap</th></tr></thead>
+              <th scope="col" data-spell-range>Spell</th><th scope="col" data-spell-range>Spell + snap</th></tr></thead>
             <tbody id="bag-ranges"></tbody>
           </table>
         </div>
@@ -94,13 +96,14 @@
               <span class="key-ball">Ball</span><span class="key-pin">Pin</span>
               <span class="key-water">Water</span><span class="key-sand">Bunker</span>
               <span class="key-stock" data-plan>Plain</span><span class="key-snap" data-plan>Snap</span>
-              <span class="key-spell" data-plan>Pure</span><span class="key-spell-snap" data-plan>Pure + snap</span>
+              <span class="key-spell" data-plan>Spell</span><span class="key-spell-snap" data-plan>Spell + snap</span>
             </div>
             <p id="map-hazards" class="chart-hazards" data-plan></p>
           </div>
           <aside class="chart-planner" id="map-planner" aria-labelledby="map-club-name">
             <p class="eyebrow">Shot planner</p>
             <div class="range-heading"><strong id="map-club-name"></strong><span id="map-metric"></span></div>
+            <p class="panel-note mana-plan" id="map-mana-plan"></p>
             <div id="map-clubs" class="chart-clubs" aria-label="Choose a club"></div>
             <table class="chart-range" aria-label="Estimated distance by swing power">
               <thead><tr id="map-powers"><th scope="col">Power</th></tr></thead>

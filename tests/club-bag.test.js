@@ -39,14 +39,26 @@ test('Guided locks a near miss on a marked load while Hard keeps the precise inp
   }
 });
 
-test('full power carry tracks the chart for plain, snap, pure Star and pure Star with snap', () => {
+test('the range card previews 95% Star purity alongside the stock carry chart', () => {
   const star = RUNES.find(rune => rune.id === 'star');
   for (const [id, expected] of [
-    ['driver', [220, 250, 280, 296]],
-    ['iron7', [140, 150, 165, 185]],
-    ['wedge', [100, 110, 135, 146]],
+    ['driver', [220, 250, 274, 292]],
+    ['iron7', [140, 150, 163, 182]],
+    ['wedge', [100, 110, 132, 143]],
   ]) {
     const { stock, snap, spell, spellSnap } = rangeCard(id, star).at(-1);
     assert.deepEqual([stock, snap, spell, spellSnap], expected);
   }
+});
+
+test('the automatic club is closest to full centered carry from the lie', () => {
+  const round = new Round();
+  const practice = new Practice();
+  round.lie = { x: round.hole.pin.x - 147 * .9144, z: round.hole.pin.z };
+  round.prepare(practice);
+  assert.equal(round.club, 'iron7');
+  round.lie = { x: round.hole.pin.x - 132 * .9144, z: round.hole.pin.z + 28 * .9144 };
+  assert.equal(round.surface, 'rough');
+  round.prepare(practice);
+  assert.equal(round.club, 'hybrid4');
 });

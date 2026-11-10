@@ -1,9 +1,26 @@
 import { CLUBS } from './clubs.js';
 import { COURSE, surfaceAt } from './course.js';
 import { HOLE_MANA_RECOVERY, manaRecovery, MAX_MANA, SPELL_MANA_COST } from './mana.js';
-import { BALL_RADIUS, carryFromLie, METERS_PER_YARD, TEE_X } from './practice.js';
+import { BALL_RADIUS, TEE_X } from './practice.js';
+import { shotRanges } from './range-card.js';
 
 export const CLUB_NAMES = Object.fromEntries(Object.entries(CLUBS).map(([id, club]) => [id, club.name]));
+const swingClubs = Object.keys(CLUBS).filter(club => club !== 'putter');
+
+function closestClub(surface, distance) {
+  if (surface === 'green') return 'putter';
+  let closest = swingClubs[0];
+  let miss = Infinity;
+  for (const club of swingClubs) {
+    const carry = shotRanges(club, surface).at(-1).snap;
+    const gap = Math.abs(distance - carry);
+    if (gap < miss) {
+      closest = club;
+      miss = gap;
+    }
+  }
+  return closest;
+}
 
 function passesCup(from, to, pin) {
   const dx = to.x - from.x;
@@ -44,11 +61,7 @@ export class Round {
     this.attemptedSpell = false;
     this.manaRecovered = 0;
     this.setAim(this.atTee ? this.hole.target : this.hole.pin);
-    const yards = this.remaining / METERS_PER_YARD;
-    const club = Object.entries(CLUBS).findLast(([, profile]) =>
-      (profile.carry?.[1] ?? 0) * carryFromLie(this.surface) * 1.04 >= yards)?.[0] ?? 'driver';
-    this.club = this.surface === 'green' ? 'putter' : this.surface === 'sand' && yards < 95 ? 'sand' :
-      club;
+    this.club = closestClub(this.surface, this.remaining);
     this.configure(practice);
   }
 

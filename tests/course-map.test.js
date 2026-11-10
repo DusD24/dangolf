@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { COURSE } from '../public/src/course.js';
-import { hazardsOnAim, landingOnAim, mapProjection } from '../public/src/course-map.js';
+import { hazardsOnAim, landingOnAim, mapProjection, pinDistance } from '../public/src/course-map.js';
 import { METERS_PER_YARD, Practice, STEP } from '../public/src/practice.js';
 import { shotRanges } from '../public/src/range-card.js';
 import { Round } from '../public/src/round.js';
+
+test('green distances stay in feet even on the far edge', () => {
+  const round = new Round();
+  round.lie = { x: round.hole.pin.x - 45 * .3048, z: round.hole.pin.z };
+  assert.equal(round.surface, 'green');
+  assert.equal(pinDistance(round.remaining, true), '45 ft');
+  assert.equal(pinDistance(round.remaining), '15 yd');
+});
 
 test('hazard distances mark the near and far edges on the current aim line', () => {
   const round = new Round([COURSE[1]]);

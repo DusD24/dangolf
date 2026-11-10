@@ -1,4 +1,10 @@
 import { surfaceAt } from './course.js';
+import { METERS_PER_YARD } from './practice.js';
+
+export function pinDistance(meters, onGreen = false) {
+  return onGreen || meters < 12 ? Math.round(meters / .3048) + ' ft' :
+    Math.round(meters / METERS_PER_YARD) + ' yd';
+}
 
 export function pointAlongAim(round, distance) {
   return {

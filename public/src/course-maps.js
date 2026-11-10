@@ -1,9 +1,10 @@
 import { CLUBS } from './clubs.js';
 import { surfaceAt } from './course.js';
-import { hazardsOnAim, landingOnAim } from './course-map.js';
+import { hazardsOnAim, landingOnAim, pinDistance } from './course-map.js';
 import { drawHoleMap } from './course-view.js';
 import { METERS_PER_YARD } from './practice.js';
-import { POWER_MARKS, shotRanges } from './range-card.js';
+import { manaPlan } from './mana.js';
+import { POWER_MARKS, PREVIEW_PURITY, shotRanges } from './range-card.js';
 
 const labels = { fairway: 'Fairway', rough: 'Rough', green: 'Green', water: 'Water', sand: 'Bunker', out: 'Out of bounds' };
 const stockColor = '#b8f2dc';
@@ -12,7 +13,6 @@ const spellColor = '#f4d094';
 const spellSnapColor = '#9dc8ff';
 const yards = meters => Math.round(meters / METERS_PER_YARD) + ' yd';
 const feet = meters => Math.round(meters / .3048) + ' ft';
-const closeDistance = meters => meters < 12 ? feet(meters) : yards(meters);
 const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 
 function crossingLabel({ type, from, to }) {
@@ -74,7 +74,7 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
 
   function renderChart() {
     screenToWorld = drawHoleMap(canvas, round, ball, { crossings, estimates });
-    get('map-pin').textContent = closeDistance(distance(ball, round.hole.pin));
+    get('map-pin').textContent = pinDistance(distance(ball, round.hole.pin), surfaceAt(round.hole, ball) === 'green');
   }
 
   function renderRanges() {
@@ -87,7 +87,9 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
     get('map-metric').textContent = (putter ? 'Roll · ft' : 'Carry · yd') + ' · ' +
       (round.atTee ? 'Tee' : labels[round.surface]);
     get('map-range-note').textContent = putter ? 'Estimates from this lie.' :
-      'Pure uses ' + rune.name + ' at 100% purity in ' + (mode === 'guided' ? 'Guided' : 'Hard') + '.';
+      'Spell uses ' + rune.name + ' at ' + Math.round(PREVIEW_PURITY * 100) + '% purity in ' +
+      (mode === 'guided' ? 'Guided' : 'Hard') + '.';
+    get('map-mana-plan').textContent = manaPlan(round.mana, putter);
 
     for (const [id, button] of clubs) {
       button.setAttribute('aria-pressed', String(id === round.club));
@@ -98,7 +100,7 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
     rows.replaceChildren();
     const modes = putter ? [['Roll', 'stock', stockColor]] : [
       ['Plain', 'stock', stockColor], ['Snap', 'snap', snapColor],
-      ['Pure', 'spell', spellColor], ['Pure + snap', 'spellSnap', spellSnapColor],
+      ['Spell', 'spell', spellColor], ['Spell + snap', 'spellSnap', spellSnapColor],
     ];
     for (const [name, key] of modes) {
       const row = rows.insertRow();
@@ -131,7 +133,7 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
     map.querySelector('.key-spell-snap').hidden = !ready || putter;
     aimAtPin.hidden = !ready;
     get('map-target-wrap').hidden = !ready;
-    get('map-target').textContent = closeDistance(distance(round.lie, round.aimTarget));
+    get('map-target').textContent = pinDistance(distance(round.lie, round.aimTarget), round.surface === 'green');
     get('map-hazards').textContent = crossings.length
       ? 'Along aim · ' + crossings.map(crossingLabel).join(' · ')
       : 'Aim line clear of water and bunkers';

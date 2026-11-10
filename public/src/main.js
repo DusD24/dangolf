@@ -1,5 +1,6 @@
 import { createShotAudio, shotCue } from './audio.js';
-import { COURSE_NAME } from './course.js';
+import { COURSE_NAME, surfaceAt } from './course.js';
+import { pinDistance } from './course-map.js';
 import { createGear } from './gear.js';
 import { createCourseMaps } from './course-maps.js';
 import { SPELL_MANA_COST } from './mana.js';
@@ -13,6 +14,7 @@ const ctx = canvas.getContext('2d');
 const header = document.querySelector('.masthead');
 const controls = document.querySelector('.thumb-controls');
 const resetButton = document.querySelector('#reset');
+const cancelSpell = document.querySelector('#cancel-spell');
 const playCourse = document.querySelector('#play-course');
 const holeMapButton = document.querySelector('#hole-map');
 const scorecardButton = document.querySelector('#scorecard');
@@ -136,7 +138,7 @@ function moveStroke(event, release = false) {
   if (release || Math.hypot(dot.x - latest.x, dot.y - latest.y) >= 0.0025) points.push(dot);
   if (!pullStarted && dot.y > points[0].y + 0.052) {
     pullStarted = true;
-    const exit = runeExit(points);
+    const exit = gear.armed ? runeExit(points) : -1;
     if (exit >= 0) {
       practice.cancelStroke();
       practice.beginStroke(points[exit].x, points[exit].y, gear.mode === 'guided');
@@ -184,7 +186,7 @@ canvas.addEventListener('pointerup', event => {
       practice.cancelStroke();
     }
   } else {
-    const result = analyzeStroke(points, gear.mode, gear.rune.id);
+    const result = gear.armed ? analyzeStroke(points, gear.mode, gear.rune.id) : { spell: null, attempted: false };
     let spell = result.spell;
     if (spell && !gear.hasRune(spell.id)) {
       spellNotice = spell.name + ' needs an equipped slot.';
@@ -231,14 +233,15 @@ function scoreLabel(score) {
   return score === 0 ? 'Even' : (score > 0 ? '+' : '−') + Math.abs(score);
 }
 
-function pinDistance(meters) {
-  return meters < 12 ? Math.round(meters / .3048) + ' ft' : formatYards(meters);
+function prepareCourseShot() {
+  gear.setShotSpell(round.atTee && round.strokes === 0 && round.canCast() ? 'star' : null);
+  reset();
 }
 
 function startRound() {
   round = new Round();
   round.prepare(practice);
-  reset();
+  prepareCourseShot();
 }
 
 playCourse.addEventListener('click', () => {
@@ -246,6 +249,7 @@ playCourse.addEventListener('click', () => {
   if (round) {
     round = null;
     practice.configure(rangeClub);
+    gear.setShotSpell(gear.rune.id);
     reset();
   } else {
     startRound();
@@ -269,7 +273,7 @@ roundNext.addEventListener('click', () => {
   } else {
     round.next(practice);
     if (round.status === 'complete') openScorecard();
-    else reset();
+    else prepareCourseShot();
   }
 });
 
@@ -305,6 +309,7 @@ const lieLabels = { fairway: 'Fairway', green: 'Green', rough: 'Rough', sand: 'B
 
 function updateCourse() {
   spellTools.hidden = practice.clubType === 'putter';
+  cancelSpell.hidden = round?.status !== 'ready' || !gear.armed || practice.clubType === 'putter';
   gear.update(practice.clubType, pointer === null && (!round || round.status === 'ready'), round?.mana ?? null);
   holeInfo.hidden = !round;
   pinStat.hidden = !round;
@@ -327,7 +332,7 @@ function updateCourse() {
   show(holeInfo, 'Hole ' + (round.index + 1) + '/9 · Par ' + hole.par + ' · ' + hole.yards + ' yd · ' +
     (round.status === 'complete' ? scoreLabel(round.toPar) : lie + ' · ' + round.strokes + ' strokes'));
   const ball = round.landing ?? (round.status === 'playing' ? round.worldPoint(practice.ball) : round.lie);
-  show(toPin, pinDistance(Math.hypot(hole.pin.x - ball.x, hole.pin.z - ball.z)));
+  show(toPin, pinDistance(Math.hypot(hole.pin.x - ball.x, hole.pin.z - ball.z), surfaceAt(hole, ball) === 'green'));
   courseMaps.update(round, ball, pointer === null && round.status === 'ready' && practice.phase === 'ready');
   show(roundNext, round.status === 'shot-over' ? 'Play next shot' :
     round.status === 'complete' ? 'Play again' : round.index === 8 ? 'Finish round' : 'Next hole');
@@ -358,10 +363,12 @@ function spellResult() {
 function updateFeedback() {
   let title = 'Practice tee';
   let hint = gear.mode === 'guided' ? 'Start at the gold dot. Trace, pull, then swipe up.' : 'Start at the gold dot. Draw, pull, then swipe up.';
+  if (!gear.armed) hint = 'Plain shot · Pull down, then swipe up.';
 
   if (practice.phase === 'drawing') {
-    title = pullStarted ? 'Loading the swing' : 'Drawing the spell';
-    hint = pullStarted ? 'Swipe straight back up and lift.' : 'Draw the rune and flow into the pull.';
+    title = pullStarted || !gear.armed ? 'Loading the swing' : 'Drawing the spell';
+    hint = pullStarted ? 'Swipe straight back up and lift.' :
+      gear.armed ? 'Draw the rune and flow into the pull.' : 'Pull down to set power.';
   } else if (practice.phase === 'swing' && !practice.impact) {
     title = practice.spell ? practice.spell.name + ' released' : 'Downswing';
     hint = 'Tap at contact for a bonus.';
@@ -391,7 +398,7 @@ function updateFeedback() {
 
   if (practice.clubType === 'putter') {
     title = practice.phase === 'drawing' ? 'Set putt power' : round?.hole.name ?? 'Putting practice';
-    hint = practice.phase === 'drawing' ? 'About ' + pinDistance(practice.puttEstimate()) + ' of roll. Lift to putt.' :
+    hint = practice.phase === 'drawing' ? 'About ' + pinDistance(practice.puttEstimate(), true) + ' of roll. Lift to putt.' :
       'Pull back and lift to putt.';
   }
 
@@ -451,7 +458,7 @@ function frame() {
   const drawing = practice.phase === 'drawing';
   const showingStart = practice.phase === 'ready' || drawing;
   const marked = putting || gear.mode === 'guided';
-  const guidedRune = marked && !putting ? gear.rune : null;
+  const guidedRune = marked && !putting && gear.armed ? gear.rune : null;
   const guide = showingStart ? { ...guideLayout, marked, path: guidedRune?.path, shaft: guidedRune?.type === 'spear',
     channelOnly: pullStarted, charge: practice.charge } : null;
   const shortSide = Math.min(width, height);

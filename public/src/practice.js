@@ -31,9 +31,6 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const smooth = value => value * value * (3 - 2 * value);
 const mix = (from, to, amount) => from + (to - from) * amount;
 
-export function carryFromLie(surface) {
-  return (SURFACES[surface] ?? SURFACES.fairway).carry;
-}
 
 function teeBall() {
   return { x: TEE_X, y: BALL_RADIUS, z: 0, vx: 0, vy: 0, vz: 0 };
