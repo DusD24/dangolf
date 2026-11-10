@@ -25,7 +25,9 @@ test('hazard distances mark the near and far edges on the current aim line', () 
   assert.equal(landingOnAim(round, water.to + METERS_PER_YARD).surface, 'fairway');
 
   round.setAim({ x: 50, z: 50 });
-  assert.deepEqual(hazardsOnAim(round.hole, round.lie, round.forward), []);
+  const treeLines = hazardsOnAim(round.hole, round.lie, round.forward);
+  assert.ok(treeLines.length > 0);
+  assert.ok(treeLines.every(({ type, from, to }) => type === 'trees' && to > from));
 });
 
 test('map coordinates invert after zooming in from the new lie', () => {

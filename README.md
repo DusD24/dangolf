@@ -4,11 +4,11 @@ A one-thumb wizard golf prototype. The practice tee runs in a phone or desktop b
 
 ## Play Moonfen Links
 
-Choose **Play 9** at the practice tee for the first course. Moonfen Links is a par-35 nine with three par 3s, four par 4s, and two par 5s.
+Choose **Play 18** at the practice tee. Moonfen Links plays to par 71 over 18 holes.
 
 - Check the live minimap for the ball, flag, and hazards. It shows the nearest hazard crossed by your current aim line.
 - Open **Aim / Map** to tap a target, equip a club, and compare plain carry, centered snap, and spell carry at 95% purity with or without a centered snap. The automatic club is the closest full-power centered carry from your lie. The planner shows how much mana a solid plain shot can restore.
-- Play the next shot from where the ball stops. Water and out of bounds add one stroke and send you back to the previous lie.
+- Tree lines catch shots that fly into the canopy. Play from where the ball drops. On doglegs, lay up at the corner or curve a Crescent around the trees. Water and out of bounds add one stroke and send you back to the previous lie.
 - On the green, pull back to set putt power and lift to roll. Sink the putt to record the hole and advance. Open **Scorecard** to see the round so far.
 
 ## Play locally

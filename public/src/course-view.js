@@ -8,6 +8,12 @@ const COLORS = {
   fairway: ['#4e7049', '#577951'],
 };
 
+const TREE_CROWNS = [
+  ['#183e34', '#2e5741', '#43694e'],
+  ['#203e33', '#355840', '#4b6a45'],
+  ['#213d3a', '#32564d', '#486b5b'],
+];
+
 function patch(ctx, points, fill) {
   if (points.length < 3) return;
   ctx.beginPath();
@@ -23,6 +29,39 @@ function oval({ x, z, rx, rz }) {
     const angle = index * Math.PI / 16;
     return { x: x + rx * Math.cos(angle), z: z + rz * Math.sin(angle) };
   });
+}
+
+function fillOval(ctx, x, y, rx, ry, fill) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+
+function drawCourseTrees(ctx, round, point) {
+  const trees = round.hole.trees.map(tree => ({ ...tree, local: round.localPoint(tree) }))
+    .filter(({ local }) => local.x > 4)
+    .sort((a, b) => b.local.x - a.local.x);
+  for (const { local, radius, height, x, z } of trees) {
+    const base = point(local.x, 0, local.z);
+    const crown = point(local.x, height * .62, local.z);
+    const top = point(local.x, height, local.z);
+    const width = radius * crown.scale;
+    const rise = crown.y - top.y;
+    const [shade, leaf, light] = TREE_CROWNS[Math.floor(Math.abs(x * 2 + z)) % TREE_CROWNS.length];
+    fillOval(ctx, base.x + width * .25, base.y, width * .8, width * .11, '#172c2560');
+    patch(ctx, [
+      { x: base.x - base.scale * .41, y: base.y },
+      { x: base.x + base.scale * .38, y: base.y },
+      { x: crown.x + crown.scale * .17, y: crown.y },
+      { x: crown.x - crown.scale * .19, y: crown.y },
+    ], '#493f33');
+    fillOval(ctx, crown.x, crown.y, width, rise * .83, shade);
+    fillOval(ctx, crown.x - width * .33, crown.y - rise * .24, width * .65, rise * .64, leaf);
+    fillOval(ctx, crown.x + width * .36, crown.y - rise * .08, width * .62, rise * .56, shade);
+    fillOval(ctx, crown.x + width * .08, crown.y - rise * .39, width * .66, rise * .58, leaf);
+    fillOval(ctx, crown.x - width * .15, crown.y - rise * .58, width * .42, rise * .36, light);
+  }
 }
 
 function terrain(ctx, hole, project, mowing = false) {
@@ -68,6 +107,7 @@ function clipNear(points) {
 export function drawCourseGround(ctx, round, point) {
   terrain(ctx, round.hole, points =>
     clipNear(points.map(world => round.localPoint(world))).map(local => point(local.x, 0, local.z)), true);
+  drawCourseTrees(ctx, round, point);
 
   const pin = round.localPoint(round.hole.pin);
   if (pin.x < -.9) return;
@@ -97,6 +137,7 @@ const MAP_INK = {
   ball: '#fff8e6',
   water: '#a5dfef',
   sand: '#e8c18b',
+  trees: '#9fc184',
   aim: '#f6dcaa',
 };
 
@@ -202,6 +243,12 @@ export function drawHoleMap(canvas, round, ball, { compact = false, crossings = 
   ctx.strokeRect(corner.x, corner.y, far.x - corner.x, far.y - corner.y);
   ctx.setLineDash([]);
   terrain(ctx, round.hole, points => points.map(point));
+  for (const tree of round.hole.trees) {
+    const center = point(tree);
+    const radius = Math.max(1, tree.radius * scale);
+    fillOval(ctx, center.x, center.y, radius, radius, '#16392d');
+    fillOval(ctx, center.x - radius * .16, center.y - radius * .16, radius * .68, radius * .68, '#52734e');
+  }
   if (round.status === 'ready') drawAim(ctx, round, map, width, height, compact, crossings);
 
   const tee = point(round.hole.tee);

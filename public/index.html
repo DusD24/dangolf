@@ -48,7 +48,7 @@
         <button id="cancel-spell" type="button" aria-label="Cancel spell" hidden>Cancel<span> spell</span></button>
         <button id="hole-map" type="button" hidden>Aim / Map</button>
         <button id="scorecard" type="button" hidden>Scorecard</button>
-        <button id="play-course" type="button">Play 9</button>
+        <button id="play-course" type="button">Play 18</button>
         <button id="reset" type="button"><span aria-hidden="true">↺</span> Reset</button>
         <button id="round-next" type="button" hidden>Play next shot</button>
       </div>
@@ -94,7 +94,7 @@
             <canvas id="map-canvas" aria-label="Overhead hole map. Tap a target to update your aim."></canvas>
             <div class="map-legend" aria-label="Map legend">
               <span class="key-ball">Ball</span><span class="key-pin">Pin</span>
-              <span class="key-water">Water</span><span class="key-sand">Bunker</span>
+              <span class="key-water">Water</span><span class="key-sand">Bunker</span><span class="key-trees">Trees</span>
               <span class="key-stock" data-plan>Plain</span><span class="key-snap" data-plan>Snap</span>
               <span class="key-spell" data-plan>Spell</span><span class="key-spell-snap" data-plan>Spell + snap</span>
             </div>
@@ -120,11 +120,13 @@
         </div>
       </section>
       <section id="card-content" hidden>
-        <table>
-          <thead><tr><th scope="col">Hole</th><th scope="col">Par</th><th scope="col">Yards</th><th scope="col">Strokes</th></tr></thead>
-          <tbody id="card-rows"></tbody>
-          <tfoot><tr><th scope="row">Total</th><td id="card-par"></td><td id="card-yards"></td><td id="card-strokes"></td></tr></tfoot>
-        </table>
+        <div class="scorecard-scroll" tabindex="0" role="region" aria-label="Hole scores">
+          <table>
+            <thead><tr><th scope="col">Hole</th><th scope="col">Par</th><th scope="col">Yards</th><th scope="col">Strokes</th></tr></thead>
+            <tbody id="card-rows"></tbody>
+            <tfoot><tr><th scope="row">Total</th><td id="card-par"></td><td id="card-yards"></td><td id="card-strokes"></td></tr></tfoot>
+          </table>
+        </div>
         <p id="card-total"></p>
       </section>
     </dialog>

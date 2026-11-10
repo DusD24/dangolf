@@ -5,10 +5,11 @@ import { MAX_MANA, SPELL_MANA_COST } from '../public/src/mana.js';
 import { Round } from '../public/src/round.js';
 import { BALL_RADIUS, Practice, STEP } from '../public/src/practice.js';
 
-test('Moonfen has nine playable tees and pins with the approved par mix', () => {
-  assert.equal(COURSE.length, 9);
-  assert.deepEqual(COURSE.map(hole => hole.par).sort(), [3, 3, 3, 4, 4, 4, 4, 5, 5]);
-  assert.equal(new Set(COURSE.map(hole => hole.name)).size, 9);
+test('Moonfen has 18 playable tees and pins and plays to par 71', () => {
+  assert.equal(COURSE.length, 18);
+  assert.deepEqual(COURSE.slice(0, 9).map(hole => hole.par), [4, 3, 4, 5, 3, 4, 3, 5, 4]);
+  assert.equal(COURSE.reduce((sum, hole) => sum + hole.par, 0), 71);
+  assert.equal(new Set(COURSE.map(hole => hole.name)).size, 18);
   for (const hole of COURSE) {
     assert.equal(surfaceAt(hole, hole.tee), 'fairway');
     assert.equal(surfaceAt(hole, hole.pin), 'green');
@@ -111,10 +112,10 @@ test('a splash costs one penalty and the next shot plays from the prior lie', ()
   assert.deepEqual(round.lie, original);
 });
 
-test('all nine putts can be holed and the scorecard closes at nine entries', () => {
+test('hole nine advances to the back nine and hole 18 completes the scorecard', () => {
   const round = new Round();
   const practice = new Practice();
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 18; i++) {
     assert.equal(round.index, i);
     const { pin } = round.hole;
     round.lie = { x: pin.x - 3, z: pin.z };
@@ -126,9 +127,76 @@ test('all nine putts can be holed and the scorecard closes at nine entries', () 
     round.next(practice);
   }
   assert.equal(round.status, 'complete');
-  assert.equal(round.card.length, 9);
-  assert.equal(round.total, 9);
-  assert.equal(round.toPar, -26);
+  assert.equal(round.card.length, 18);
+  assert.equal(round.total, 18);
+  assert.equal(round.toPar, -53);
+});
+
+test('a tree stops a canopy-height shot without a penalty, and a higher shot clears it', () => {
+  const tree = { x: 48, z: 0, radius: 3, height: 12 };
+  const hole = { ...COURSE[0], trees: [tree] };
+  for (const y of [6, 13]) {
+    const round = new Round([hole]);
+    const practice = new Practice();
+    round.prepare(practice);
+    round.startShot();
+    round.previous = { x: 44.8, z: 0, y };
+    practice.impact = { kind: 'solid' };
+    practice.ball = { ...round.localPoint({ x: 45.1, z: 0 }), y, vx: 45, vy: 0, vz: 0 };
+    round.track(practice);
+    assert.equal(round.strokes, 1);
+    if (y > tree.height) {
+      assert.equal(round.status, 'playing');
+    } else {
+      assert.equal(round.status, 'shot-over');
+      assert.equal(round.hitTree, true);
+      assert.equal(practice.ball.y, BALL_RADIUS);
+      assert.equal(practice.ball.vx, 0);
+      const landing = round.landing;
+      round.next(practice);
+      assert.deepEqual(round.lie, landing);
+    }
+  }
+});
+
+test('a tree drop into water uses the penalty and leaves a playable next lie', () => {
+  const hole = { ...COURSE[0], hazards: [{ type: 'water', x: 43, z: 0, rx: 2, rz: 3 }],
+    trees: [{ x: 48, z: 0, radius: 3, height: 12 }] };
+  const round = new Round([hole]);
+  const practice = new Practice();
+  round.prepare(practice);
+  round.startShot();
+  round.previous = { x: 44.8, z: 0, y: 6 };
+  practice.impact = { kind: 'solid' };
+  practice.ball = { ...round.localPoint({ x: 45.1, z: 0 }), y: 6, vx: 45, vy: 0, vz: 0 };
+  round.track(practice);
+  assert.equal(round.notice, 'Water · +1 penalty');
+  assert.equal(round.strokes, 2);
+  round.next(practice);
+  assert.deepEqual(round.lie, hole.tee);
+});
+
+test('mirrored doglegs reward a Guided Crescent while leaving a safe plain layup', () => {
+  const routes = [['Briar Gate', 1], ['Witchwood Elbow', -1]];
+  for (const [name, direction] of routes) {
+    const hole = COURSE.find(item => item.name === name);
+    const drive = options => {
+      const round = new Round([hole]);
+      const practice = new Practice();
+      round.prepare(practice);
+      playShot(round, practice, options);
+      return round;
+    };
+    const layup = drive({ load: .84 });
+    const straight = drive({ load: 1, snap: 'center' });
+    const crescent = drive({ load: 1, spell: { type: 'crescent', purity: .95, potency: .57, direction, guided: true } });
+    assert.equal(layup.hitTree, false, name);
+    assert.equal(surfaceAt(hole, layup.landing), 'fairway', name);
+    assert.equal(straight.hitTree, true, name);
+    assert.equal(crescent.hitTree, false, name);
+    assert.equal(surfaceAt(hole, crescent.landing), 'fairway', name);
+    assert.ok(crescent.landing.x > straight.landing.x + 8, name);
+  }
 });
 
 test('a putt that crosses the cup too fast stays in play', () => {

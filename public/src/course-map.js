@@ -20,7 +20,8 @@ export function landingOnAim(round, distance) {
 
 export function hazardsOnAim(hole, lie, aim) {
   const crossings = [];
-  for (const { type, x, z, rx, rz } of hole.hazards) {
+  const canopies = hole.trees.map(({ x, z, radius }) => ({ type: 'trees', x, z, rx: radius, rz: radius }));
+  for (const { type, x, z, rx, rz } of [...hole.hazards, ...canopies]) {
     const dx = aim.x / rx;
     const dz = aim.z / rz;
     const ox = (lie.x - x) / rx;
@@ -35,7 +36,17 @@ export function hazardsOnAim(hole, lie, aim) {
     const to = (-b + half) / a;
     if (to > 0) crossings.push({ type, from: Math.max(0, (-b - half) / a), to });
   }
-  return crossings.sort((a, b) => a.from - b.from);
+  crossings.sort((a, b) => a.from - b.from);
+  const stretches = [];
+  for (const crossing of crossings) {
+    const last = stretches.at(-1);
+    if (last?.type === 'trees' && crossing.type === 'trees' && crossing.from <= last.to) {
+      last.to = Math.max(last.to, crossing.to);
+    } else {
+      stretches.push(crossing);
+    }
+  }
+  return stretches;
 }
 
 export function mapProjection(round, width, height, padding = 16) {

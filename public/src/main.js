@@ -1,5 +1,5 @@
 import { createShotAudio, shotCue } from './audio.js';
-import { COURSE_NAME, surfaceAt } from './course.js';
+import { COURSE, COURSE_NAME, surfaceAt } from './course.js';
 import { pinDistance } from './course-map.js';
 import { createGear } from './gear.js';
 import { createCourseMaps } from './course-maps.js';
@@ -295,8 +295,14 @@ function openScorecard() {
   document.querySelector('#card-yards').textContent = round.holes.reduce((sum, hole) => sum + hole.yards, 0);
   document.querySelector('#card-strokes').textContent = round.total;
   document.querySelector('#card-total').textContent =
-    round.total + ' strokes · ' + scoreLabel(round.toPar) + ' · ' + round.card.length + ' of 9 holes';
+    round.total + ' strokes · ' + scoreLabel(round.toPar) + ' · ' + round.card.length + ' of ' + round.holes.length + ' holes';
   if (!dialog.open) dialog.showModal();
+  const scroll = document.querySelector('.scorecard-scroll');
+  scroll.scrollTop = 0;
+  if (round.index >= 9) {
+    scroll.scrollTop = rows.rows[round.index].getBoundingClientRect().top - scroll.getBoundingClientRect().top -
+      scroll.querySelector('thead').offsetHeight;
+  }
 }
 
 scorecardButton.addEventListener('click', openScorecard);
@@ -320,7 +326,7 @@ function updateCourse() {
   roundNext.hidden = !canAdvance;
   choices.hidden = Boolean(canAdvance);
   playCourse.disabled = round?.status === 'playing';
-  show(playCourse, round ? 'Practice' : 'Play 9');
+  show(playCourse, round ? 'Practice' : 'Play ' + COURSE.length);
   show(courseName, round ? COURSE_NAME : 'Wizard golf');
   header.classList.toggle('course-hud', Boolean(round));
   if (!round) {
@@ -329,13 +335,13 @@ function updateCourse() {
   }
   const hole = round.hole;
   const lie = round.atTee ? 'Tee' : lieLabels[round.surface];
-  show(holeInfo, 'Hole ' + (round.index + 1) + '/9 · Par ' + hole.par + ' · ' + hole.yards + ' yd · ' +
+  show(holeInfo, 'Hole ' + (round.index + 1) + '/' + round.holes.length + ' · Par ' + hole.par + ' · ' + hole.yards + ' yd · ' +
     (round.status === 'complete' ? scoreLabel(round.toPar) : lie + ' · ' + round.strokes + ' strokes'));
   const ball = round.landing ?? (round.status === 'playing' ? round.worldPoint(practice.ball) : round.lie);
   show(toPin, pinDistance(Math.hypot(hole.pin.x - ball.x, hole.pin.z - ball.z), surfaceAt(hole, ball) === 'green'));
   courseMaps.update(round, ball, pointer === null && round.status === 'ready' && practice.phase === 'ready');
   show(roundNext, round.status === 'shot-over' ? 'Play next shot' :
-    round.status === 'complete' ? 'Play again' : round.index === 8 ? 'Finish round' : 'Next hole');
+    round.status === 'complete' ? 'Play again' : round.index === round.holes.length - 1 ? 'Finish round' : 'Next hole');
 }
 
 function spellResult() {
@@ -412,6 +418,9 @@ function updateFeedback() {
     } else if (round.notice) {
       title = round.notice;
       hint = 'Play again from the previous lie.';
+    } else if (round.hitTree) {
+      title = 'Hit a tree';
+      hint = 'Play the ball from where it dropped.';
     } else if (round.club === 'putter' && round.status !== 'ready') {
       title = round.status === 'shot-over' ? 'Putt finished' : round.hole.name;
       hint = round.status === 'playing' ? 'Rolling toward the cup.' : 'Play the ball from its new lie.';

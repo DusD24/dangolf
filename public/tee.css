@@ -323,6 +323,7 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
 .key-pin { color: #ffd08d; }
 .key-water { color: #a5dfef; }
 .key-sand { color: #e8c18b; }
+.key-trees { color: #9fc184; }
 .key-stock { color: #b8f2dc; }
 .key-spell { color: #f4d094; }
 .key-spell-snap { color: #9dc8ff; }
@@ -383,9 +384,12 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
   .chart-planner .panel-note, #map-tip { font-size: .68rem; }
   .chart-dialog .dialog-heading { padding-bottom: 5px; }
 }
-#card-content table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .86rem; }
+.scorecard-scroll { max-height: min(59dvh, 550px); overflow: auto; margin-top: 10px; }
+#card-content table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .86rem; }
 #card-content th, #card-content td { text-align: right; padding: 7px 4px; border-bottom: 1px solid #ffffff25; }
 #card-content th:first-child, #card-content td:first-child { text-align: left; }
+#card-content thead { position: sticky; top: 0; background: #29283d; }
+#card-content tbody tr:nth-child(10) td { border-top: 1px solid #d6ab738c; }
 #card-content tbody tr[aria-current] { color: #f0c88a; }
 #card-total { margin-top: 12px; font-weight: 700; }
 

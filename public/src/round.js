@@ -1,5 +1,5 @@
 import { CLUBS } from './clubs.js';
-import { COURSE, surfaceAt } from './course.js';
+import { COURSE, hitsTree, surfaceAt } from './course.js';
 import { HOLE_MANA_RECOVERY, manaRecovery, MAX_MANA, SPELL_MANA_COST } from './mana.js';
 import { BALL_RADIUS, TEE_X } from './practice.js';
 import { shotRanges } from './range-card.js';
@@ -56,6 +56,7 @@ export class Round {
   prepare(practice) {
     this.status = 'ready';
     this.notice = '';
+    this.hitTree = false;
     this.landing = null;
     this.previous = null;
     this.attemptedSpell = false;
@@ -117,13 +118,23 @@ export class Round {
   track(practice) {
     if (this.status !== 'playing') return;
     const { ball } = practice;
-    const point = { ...this.worldPoint(ball), y: ball.y };
+    let point = { ...this.worldPoint(ball), y: ball.y };
+    if (practice.impact && hitsTree(this.hole, point, this.lie)) {
+      this.hitTree = true;
+      Object.assign(ball, this.localPoint(this.previous), { y: BALL_RADIUS });
+      practice.carry ??= practice.distance;
+      point = { ...this.worldPoint(ball), y: ball.y };
+    }
     if (ball.y <= BALL_RADIUS) {
       const surface = surfaceAt(this.hole, point);
       if (surface === 'water' || surface === 'out') {
         this.strokes++;
         this.notice = (surface === 'water' ? 'Water' : 'Out of bounds') + ' · +1 penalty';
         this.endShot(practice, this.lie);
+        return;
+      }
+      if (this.hitTree) {
+        this.endShot(practice, this.worldPoint(ball));
         return;
       }
       const speed = Math.hypot(ball.vx, ball.vz);

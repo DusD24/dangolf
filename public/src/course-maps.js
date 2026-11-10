@@ -6,7 +6,8 @@ import { METERS_PER_YARD } from './practice.js';
 import { manaPlan } from './mana.js';
 import { POWER_MARKS, PREVIEW_PURITY, shotRanges } from './range-card.js';
 
-const labels = { fairway: 'Fairway', rough: 'Rough', green: 'Green', water: 'Water', sand: 'Bunker', out: 'Out of bounds' };
+const labels = { fairway: 'Fairway', rough: 'Rough', green: 'Green', water: 'Water', sand: 'Bunker',
+  trees: 'Trees', out: 'Out of bounds' };
 const stockColor = '#b8f2dc';
 const snapColor = '#dcb1ff';
 const spellColor = '#f4d094';
@@ -135,8 +136,9 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
     get('map-target-wrap').hidden = !ready;
     get('map-target').textContent = pinDistance(distance(round.lie, round.aimTarget), round.surface === 'green');
     get('map-hazards').textContent = crossings.length
-      ? 'Along aim · ' + crossings.map(crossingLabel).join(' · ')
-      : 'Aim line clear of water and bunkers';
+      ? 'Along straight aim · ' + crossings.slice(0, 3).map(crossingLabel).join(' · ') +
+        (crossings.length > 3 ? ' · +' + (crossings.length - 3) + ' more' : '')
+      : 'Aim line clear of hazards and trees';
     get('map-landing').textContent = power + '% · ' +
       estimates.map(({ name, surface }) => name + ' → ' + labels[surface]).join(' · ');
     get('map-tip').textContent = round.hole.tip + (ready ? ' Tap the map to change aim.' : '');
