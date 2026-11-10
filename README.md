@@ -28,8 +28,7 @@ For a phone on the same Wi-Fi, start a preview bound to the Mac's Wi-Fi address.
 
 ```sh
 DANGOLF_WIFI_IP=$(ipconfig getifaddr en0)
-printf 'http://%s:4173/\n' "$DANGOLF_WIFI_IP"
-python3 -m http.server 4173 --bind "$DANGOLF_WIFI_IP" --directory public
+npm start -- --bind "$DANGOLF_WIFI_IP"
 ```
 
 Use `npm test` to check the gesture and shot simulation.
