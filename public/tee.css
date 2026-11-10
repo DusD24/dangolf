@@ -34,7 +34,7 @@ p, h1, dl, dd { margin: 0; }
   left: max(var(--edge), env(safe-area-inset-left));
   right: max(var(--edge), env(safe-area-inset-right));
   display: grid;
-  grid-template: "brand reset" "stats stats" "instructions instructions" / 1fr auto;
+  grid-template: "brand reset" "stats stats" "tools tools" "instructions instructions" / 1fr auto;
   align-items: start;
   gap: 12px 22px;
   pointer-events: none;
@@ -75,6 +75,26 @@ h1 {
 #reset:hover, #reset:focus-visible { background: #323b44; }
 #reset:focus-visible { outline: 2px solid #eac380; outline-offset: 3px; }
 
+.spell-tools {
+  grid-area: tools;
+  display: flex;
+  gap: 8px;
+}
+
+.spell-tools select {
+  min-height: 36px;
+  max-width: 100%;
+  border: 1px solid #eac38066;
+  border-radius: 6px;
+  padding: 0 8px;
+  background: #142131dc;
+  color: inherit;
+  font: 650 .8rem system-ui, sans-serif;
+  pointer-events: auto;
+}
+
+.spell-tools select:focus-visible { outline: 2px solid #eac380; outline-offset: 2px; }
+
 .instructions { grid-area: instructions; }
 #prompt { margin-top: 3px; font-size: .85rem; line-height: 1.3; }
 
@@ -90,7 +110,7 @@ h1 {
 
 @media (min-width: 650px) {
   .masthead {
-    grid-template: "brand stats reset" "instructions . ." / 1fr auto auto;
+    grid-template: "brand stats reset" "tools instructions instructions" / 1fr auto auto;
     align-items: center;
   }
 }
@@ -98,4 +118,5 @@ h1 {
 @media (max-height: 440px) {
   .masthead { gap: 6px 18px; }
   h1 { font-size: 2.25rem; }
+  .spell-tools select { min-height: 30px; }
 }

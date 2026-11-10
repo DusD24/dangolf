@@ -6,10 +6,12 @@ A one-thumb wizard golf prototype. The practice tee runs in a phone or desktop b
 
 Run `npm start` and open [the practice tee](http://127.0.0.1:4173/). The server uses Python 3 and the game has no browser dependencies.
 
-- Press the tee and **pull down** to load the spectral club.
-- **Swipe back up and lift** to start the downswing. The return path steers the club.
-- **Tap again just before contact** to snap the tether. Watch for the glint near the club head.
-- Tap **Reset** or press **R** to set up another ball.
+- In **Guided**, start at the gold dot and trace the selected rune back to the dot. **Hard** leaves the screen clear and rewards accurate spells with stronger effects.
+- In one motion, **pull down** to load, **swipe straight back up**, then **lift** to send it. You can also start with a plain pull and return.
+- **Tap just before contact** for a snap bonus. Watch for the club-head glint.
+- Tap **Reset** or press **R** for another ball.
+
+The crescent bends the shot, the sword hits a low runner, and the five-point star adds up to 25% power in Hard. The browser unlocks shot audio when you interact with the tee.
 
 For a phone on the same Wi-Fi, start a preview bound to the Mac's Wi-Fi address. On a Mac that uses `en0` for Wi-Fi, run these commands from the project folder and open the printed URL on the phone.
 

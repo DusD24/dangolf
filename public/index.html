@@ -11,7 +11,7 @@
 </head>
 <body>
   <main id="practice">
-    <canvas id="tee" aria-label="Practice tee. Drag down, swipe up and lift, then tap just before the club reaches the ball." aria-describedby="prompt"></canvas>
+    <canvas id="tee" aria-label="Practice tee. Draw a rune, pull down, then swipe up and lift. Tap at contact for a bonus." aria-describedby="prompt"></canvas>
     <header class="masthead">
       <div class="brand">
         <p class="eyebrow"><span aria-hidden="true">✦</span> Wizard golf</p>
@@ -23,9 +23,21 @@
         <div><dt>Carry</dt><dd id="carry">—</dd></div>
         <div><dt>Total</dt><dd id="distance">—</dd></div>
       </dl>
+      <div class="spell-tools">
+        <select id="spell-mode" aria-label="Spell difficulty">
+          <option value="guided">Guided</option>
+          <option value="hard">Hard</option>
+        </select>
+        <select id="rune-guide" aria-label="Rune to trace">
+          <option value="crescent-right">Crescent →</option>
+          <option value="crescent-left">Crescent ←</option>
+          <option value="sword">Sword</option>
+          <option value="star">Five-point star</option>
+        </select>
+      </div>
       <div class="instructions">
         <p class="eyebrow" id="phase" role="status">Practice tee</p>
-        <p id="prompt">Pull down, then swipe up and lift.</p>
+        <p id="prompt">Start at the gold dot. Trace, pull, then swipe up.</p>
       </div>
     </header>
   </main>

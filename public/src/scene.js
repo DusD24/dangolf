@@ -242,7 +242,33 @@ function sparks(ctx, origin, age, scale, color, count) {
   ctx.restore();
 }
 
-export function drawScene(ctx, width, height, practice, trace, flight) {
+function drawGuide(ctx, guide) {
+  const { x, y, scale, pull, path, channelOnly } = guide;
+  const halfWidth = Math.max(8, scale * .11);
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 5]);
+  ctx.strokeStyle = '#b8f4e978';
+  ctx.beginPath();
+  ctx.moveTo(x - halfWidth, y);
+  ctx.lineTo(x - halfWidth, y + pull);
+  ctx.lineTo(x + halfWidth, y + pull);
+  ctx.lineTo(x + halfWidth, y);
+  ctx.stroke();
+  if (!channelOnly) {
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (const [dx, dy] of path.slice(1)) ctx.lineTo(x + dx * scale, y + dy * scale);
+    ctx.strokeStyle = '#c6fff0a3';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ellipse(ctx, x, y, 4, 4, '#f0d29b');
+  ctx.restore();
+}
+
+export function drawScene(ctx, width, height, practice, trace, flight, guide) {
   const { point, horizon } = createTeeView(width, height);
   landscape(ctx, width, height, horizon);
   fairway(ctx, point);
@@ -297,6 +323,8 @@ export function drawScene(ctx, width, height, practice, trace, flight) {
   if (practice.turfAt !== null) {
     sparks(ctx, point(-.07, .03, practice.steer * .10), practice.elapsed - practice.turfAt, tee.scale, '#c6ad73', 14);
   }
+
+  if (guide) drawGuide(ctx, guide);
 
   if (trace.length > 1) {
     ctx.beginPath();

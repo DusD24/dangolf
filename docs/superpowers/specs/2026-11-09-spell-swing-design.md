@@ -44,6 +44,10 @@ A high-purity, full-load rune release should feel like a driver even before the 
 
 **Hard** starts from a clear screen and recognizes the drawn rune across the starter catalog. It uses the full effect at a given purity, with the five-point star reaching 125%. Both modes show the result in the existing top readout area and keep the tee clear. Reset keeps the chosen mode and guide and clears the last shot.
 
+## Shot sounds
+
+Clean contact plays a crisp driver crack. A full 125% star adds a small explosion to that hit. Whiffs use a whoosh, and turf strikes use a low, gritty chunk. Each recognized rune adds its own success or failure sound over the standard outcome.
+
 ## First playtest
 
 - Draw all three runes through their pull and return using one thumb, then compare Guided and Hard results for equivalent strokes.

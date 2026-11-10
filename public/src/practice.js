@@ -4,7 +4,7 @@ export const BALL_RADIUS = 0.043;
 export const TEE_X = 0.20;
 const CLUB_RADIUS = 0.044;
 const TETHER_LENGTH = 0.95;
-const MAX_PULL = 0.45;
+export const FULL_PULL = 0.45;
 const MIN_PULL = 0.055;
 const SNAP_CUE_START = 0.068;
 const SNAP_CUE_END = 0.034;
@@ -52,6 +52,8 @@ export class Practice {
     this.startAngle = 0;
     this.castAt = null;
     this.castLabel = '';
+    this.spell = null;
+    this.spellSnapEnergy = 1;
     this.snapStrength = 0;
     this.earlyPull = 0;
     this.turfAt = null;
@@ -77,13 +79,13 @@ export class Practice {
     if (stroke.depth - depth > 0.008 && Math.abs(drift) > Math.abs(stroke.drift)) {
       stroke.drift = drift;
     }
-    this.charge = clamp(stroke.depth / MAX_PULL, 0, 1);
+    this.charge = clamp(stroke.depth / FULL_PULL, 0, 1);
     this.angle = 0.40 - 2.12 * this.charge;
     this.staffAngle = this.angle * 0.76;
     this.club = this.clubPose();
   }
 
-  releaseStroke(x, y) {
+  releaseStroke(x, y, spell = null) {
     if (this.phase !== 'drawing') return false;
     this.moveStroke(x, y);
     const { depth, drift, y: startY } = this.stroke;
@@ -96,6 +98,7 @@ export class Practice {
     const bend = Math.max(0, Math.abs(drift) - deadZone);
     this.steer = Math.sign(drift) * clamp(bend / 0.14, 0, 1);
     this.stroke = null;
+    this.spell = spell;
     this.phase = 'swing';
     this.startAngle = -0.30 - 1.40 * this.charge;
     this.angle = this.startAngle;
@@ -127,9 +130,13 @@ export class Practice {
     const late = this.impact || lead < SNAP_CUE_END;
     this.castLabel = late ? 'Late cast' : atCue ? 'Clean snap' : 'Early cast';
 
-    // A taut tether sends the spell into the swing. Pulling on it too soon
-    // spends more of that force dragging the head toward the turf.
     const alignment = Math.exp(-(((lead - 0.052) / 0.024) ** 2));
+    if (this.spell) {
+      if (atCue) this.spellSnapEnergy = 1 + 0.10 * alignment;
+      return true;
+    }
+
+    // A taut tether sends the snap into the swing. An early pull drags the head into the turf.
     this.snapStrength = 0.30 + 0.70 * alignment;
     this.earlyPull = clamp((lead - SNAP_CUE_START) / 0.14, 0, 1);
     return true;
@@ -147,7 +154,7 @@ export class Practice {
     return {
       x: pivot.x + arc * Math.cos(yaw),
       y: pivot.y - TETHER_LENGTH * Math.cos(this.angle) - dig * (
-        0.075 * this.steer ** 2 + 0.22 * this.earlyPull
+        0.032 * this.steer ** 2 + 0.22 * this.earlyPull
       ),
       z: pivot.z + arc * Math.sin(yaw),
     };
@@ -194,15 +201,28 @@ export class Practice {
       this.club.y - previous.y,
       this.club.z - previous.z,
     ) / STEP;
-    const loft = 0.055 + 0.12 * this.charge + 0.22 * snapPulse;
+    const runeCharge = (this.spell?.purity ?? 0) * this.charge;
+    const stinger = this.spell?.type === 'sword' ? this.spell.potency : 0;
+    const spellEnergy = this.spell?.type === 'star' ? 1 + 0.25 * this.spell.potency : 1;
+    const loft = Math.max(0.045, 0.055 + 0.12 * this.charge + 0.22 * snapPulse +
+      0.16 * runeCharge - 0.22 * stinger);
     const heading = this.steer * 0.88;
     const transfer = 0.90 - 0.17 * Math.abs(this.steer);
-    const launchSpeed = speed * transfer * DRIVER_LEVERAGE;
+    const launchSpeed = speed * transfer * DRIVER_LEVERAGE * (1 + 0.47 * runeCharge) *
+      Math.sqrt(spellEnergy * this.spellSnapEnergy);
     const horizontal = launchSpeed * Math.cos(loft);
     this.ball.vx = horizontal * Math.cos(heading);
     this.ball.vy = launchSpeed * Math.sin(loft);
     this.ball.vz = horizontal * Math.sin(heading);
-    this.impact = { speed, launchY: this.ball.vy, at: this.elapsed };
+    this.impact = {
+      speed,
+      launchY: this.ball.vy,
+      at: this.elapsed,
+      spellEnergy,
+      snapEnergy: this.spellSnapEnergy,
+      stinger,
+      curve: this.spell?.type === 'crescent' ? 4.4 * this.spell.direction * this.spell.potency : 0,
+    };
   }
 
   stepBall() {
@@ -211,20 +231,30 @@ export class Practice {
     ball.x += ball.vx * STEP;
     ball.z += ball.vz * STEP;
 
+    const { curve, stinger } = this.impact;
     if (ball.y > BALL_RADIUS || ball.vy > 0) {
+      if (curve && this.carry === null) {
+        const turn = curve * STEP / Math.hypot(ball.vx, ball.vz);
+        const sin = Math.sin(turn);
+        const cos = Math.cos(turn);
+        const forward = ball.vx;
+        ball.vx = forward * cos - ball.vz * sin;
+        ball.vz = forward * sin + ball.vz * cos;
+      }
       ball.vy -= 9.81 * STEP;
       ball.y += ball.vy * STEP;
       if (ball.y > BALL_RADIUS) return;
       this.carry ??= Math.hypot(ball.x - TEE_X, ball.z);
       ball.y = BALL_RADIUS;
       ball.vy = ball.vy < -0.60 ? -TURF_BOUNCE * ball.vy : 0;
-      ball.vx *= TURF_SPEED_RETENTION;
-      ball.vz *= TURF_SPEED_RETENTION;
+      const retention = TURF_SPEED_RETENTION + 0.10 * stinger;
+      ball.vx *= retention;
+      ball.vz *= retention;
       return;
     }
 
     const speed = Math.hypot(ball.vx, ball.vz);
-    const roll = Math.max(0, 1 - ROLL_DECELERATION * STEP / speed);
+    const roll = Math.max(0, 1 - ROLL_DECELERATION * (1 - 0.30 * stinger) * STEP / speed);
     ball.vx *= roll;
     ball.vz *= roll;
   }
