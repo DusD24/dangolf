@@ -237,7 +237,7 @@ export class Practice {
       this.club.z - previous.z,
     ) / STEP;
     const runeCharge = (this.spell?.purity ?? 0) * this.charge;
-    const stinger = this.spell?.type === 'sword' ? this.spell.potency : 0;
+    const stinger = this.spell?.type === 'spear' ? this.spell.potency : 0;
     const spellEnergy = this.spell?.type === 'star' ? 1 + 0.25 * this.spell.potency : 1;
     const profile = CLUBS[this.clubType];
     const lie = SURFACES[this.surfaceAt(this.ball)] ?? SURFACES.fairway;

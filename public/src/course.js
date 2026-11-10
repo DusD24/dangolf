@@ -43,7 +43,7 @@ export const COURSE = [
   makeHole('Swordsman’s Run', 3, 155,
     [[0, 0, 12], [66, 0, 23], [119, 0, 21], [155, 0, 16]],
     [['sand', 133, -16, 16, 8], ['sand', 133, 17, 13, 7]],
-    'The green is open straight ahead. A sword can run through the gap.'),
+    'The green is open straight ahead. A spear can run through the gap.'),
   makeHole('Split Oak', 4, 382,
     [[0, 0, 14], [100, 0, 25], [160, 0, 39], [236, 0, 39], [300, 4, 25], [382, 9, 17]],
     [['water', 199, 0, 50, 12], ['sand', 348, 24, 16, 8]],

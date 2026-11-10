@@ -37,13 +37,13 @@ test('mirrored crescents start square and bend in opposite directions during fli
   assert.ok(Math.abs(left.ball.z + right.ball.z) < 0.1);
 });
 
-test('the sword carries lower and rolls farther after landing', () => {
-  const sword = arm('sword');
+test('Spear carries lower and rolls farther after landing', () => {
+  const spear = arm('spear');
   const neutral = arm('star', { potency: 0 });
-  finish(sword);
+  finish(spear);
   finish(neutral);
-  assert.ok(sword.impact.launchY < neutral.impact.launchY * 0.6);
-  assert.ok(sword.distance - sword.carry > neutral.distance - neutral.carry);
+  assert.ok(spear.impact.launchY < neutral.impact.launchY * 0.6);
+  assert.ok(spear.distance - spear.carry > neutral.distance - neutral.carry);
 });
 
 test('the Hard and Guided star multiply the same launch energy by 125% and 115%', () => {

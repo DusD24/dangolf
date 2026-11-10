@@ -18,7 +18,7 @@ test('a clean hit gets the driver crack and a max star adds the blast and rune l
 });
 
 test('recognized runes use their own success and failure layers on all base outcomes', () => {
-  for (const type of ['crescent', 'sword', 'star']) {
+  for (const type of ['crescent', 'spear', 'star']) {
     const spell = { type, purity: .95 };
     assert.deepEqual(shotCue({ ...attempt, phase: 'result', spell }),
       { base: 'whiff', rune: type, success: false, blast: false });

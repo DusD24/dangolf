@@ -430,7 +430,8 @@ function frame() {
   const drawing = practice.phase === 'drawing';
   const showingStart = practice.phase === 'ready' || drawing;
   const marked = putting || gear.mode === 'guided';
-  const guide = showingStart ? { ...guideLayout, marked, path: marked && !putting ? gear.rune.path : null,
+  const guidedRune = marked && !putting ? gear.rune : null;
+  const guide = showingStart ? { ...guideLayout, marked, path: guidedRune?.path, shaft: guidedRune?.type === 'spear',
     channelOnly: pullStarted, charge: practice.charge } : null;
   const shortSide = Math.min(width, height);
   const trace = drawing && !putting ? points.map(point => ({ x: point.x * shortSide, y: point.y * shortSide })) : [];

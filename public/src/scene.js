@@ -180,7 +180,7 @@ function sparks(ctx, origin, age, scale, color, count) {
 }
 
 function drawGuide(ctx, guide) {
-  const { x, y, scale, pull, path, channelOnly, charge } = guide;
+  const { x, y, scale, pull, path, shaft, channelOnly, charge } = guide;
   const halfWidth = Math.max(8, scale * .11);
   ctx.save();
   ctx.lineWidth = 1.5;
@@ -213,10 +213,16 @@ function drawGuide(ctx, guide) {
     ctx.fillText(mark + '%', x + halfWidth + 8, tick);
     ctx.shadowBlur = 0;
   }
-  if (path && !channelOnly) {
+  if (shaft || (path && !channelOnly)) {
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    for (const [dx, dy] of path.slice(1)) ctx.lineTo(x + dx * scale, y + dy * scale);
+    if (path && !channelOnly) {
+      ctx.moveTo(x, y);
+      for (const [dx, dy] of path.slice(1)) ctx.lineTo(x + dx * scale, y + dy * scale);
+    }
+    if (shaft) {
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + pull);
+    }
     ctx.strokeStyle = '#c6fff0a3';
     ctx.lineWidth = 2;
     ctx.stroke();

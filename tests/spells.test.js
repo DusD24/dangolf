@@ -71,21 +71,23 @@ test('draw pace and both transition holds independently reduce purity', () => {
   }
 });
 
-test('a loose blade loop flows into the pull without stopping on the gold dot', () => {
-  const blade = [[0, 0], [-.028, -.17], [-.17, -.37], [-.251, -.54], [-.20, -.73],
-    [.018, -.96], [.188, -.77], [.27, -.55], [.143, -.34], [.035, -.17], [.004, -.025]];
+test('a hand-drawn spearhead flows into the shaft without stopping on the gold dot', () => {
+  const diamond = [[0, 0], [-.16, -.21], [-.31, -.49], [-.15, -.76], [.018, -.96],
+    [.18, -.74], [.31, -.51], [.13, -.21], [.004, -.025]];
   for (const mode of ['guided', 'hard']) {
-    const points = stroke(blade);
-    const result = analyzeStroke(points, mode, 'sword');
-    assert.equal(result.spell?.id, 'sword');
-    assert.ok(result.spell.purity >= .90);
-    assert.equal(result.swing[0], points[blade.length - 1]);
+    for (const direction of [1, -1]) {
+      const points = stroke(diamond.map(([x, y]) => [x * direction, y]));
+      const result = analyzeStroke(points, mode, 'spear');
+      assert.equal(result.spell?.id, 'spear');
+      assert.ok(result.spell.purity >= .90);
+      assert.equal(result.swing[0], points[diamond.length - 1]);
+    }
   }
 });
 
-test('an up-and-down flick does not cast the blade loop', () => {
+test('an up-and-down flick does not cast Spear', () => {
   const flick = [[0, 0], [-.03, -.3], [-.025, -.68], [0, -1], [.02, -.65], [.04, -.31], [0, 0]];
   for (const mode of ['guided', 'hard']) {
-    assert.equal(analyzeStroke(stroke(flick), mode, 'sword').spell, null);
+    assert.equal(analyzeStroke(stroke(flick), mode, 'spear').spell, null);
   }
 });

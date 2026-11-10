@@ -121,7 +121,7 @@ function runeSound(context, out, at, rune, success) {
     noise(context, out, at, success ? 1350 : 850, success ? 3850 : 260, .26, .20, { attack: .022 });
     tone(context, out, at + .015, success ? 630 : 460, success ? 1120 : 205, .27, .14);
     tone(context, out, at + .068, success ? 936 : 360, success ? 1520 : 160, .19, .085);
-  } else if (rune === 'sword') {
+  } else if (rune === 'spear') {
     noise(context, out, at, success ? 5700 : 1900, success ? 2500 : 480, .13, .29, { q: 1.6 });
     tone(context, out, at + .009, success ? 1830 : 620, success ? 1570 : 450, .19, .15, 'triangle');
     tone(context, out, at + .043, success ? 2690 : 222, success ? 2160 : 108, .145, .09);

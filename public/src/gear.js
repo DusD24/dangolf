@@ -88,7 +88,7 @@ export function createGear({ equip, changeSpell }) {
     const button = document.createElement('button');
     button.type = 'button';
     const description = option.type === 'crescent' ? 'Bend the flight' :
-      option.type === 'sword' ? 'Low running shot' : 'Extra launch power';
+      option.type === 'spear' ? 'Low running shot' : 'Extra launch power';
     button.append(runeIcon(option), textElement('strong', runeLabel(option)), textElement('small', description));
     button.addEventListener('click', () => {
       rune = option;
