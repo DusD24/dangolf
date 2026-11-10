@@ -1,7 +1,8 @@
+import { CLUBS } from './clubs.js';
 import { COURSE, surfaceAt } from './course.js';
 import { BALL_RADIUS, METERS_PER_YARD, TEE_X } from './practice.js';
 
-export const CLUB_NAMES = { driver: 'Driver', wedge: 'Wedge', pitch: 'Pitch', putter: 'Putter' };
+export const CLUB_NAMES = Object.fromEntries(Object.entries(CLUBS).map(([id, club]) => [id, club.name]));
 
 function passesCup(from, to, pin) {
   const dx = to.x - from.x;
@@ -40,7 +41,9 @@ export class Round {
     this.previous = null;
     this.setAim(this.atTee ? this.hole.target : this.hole.pin);
     const yards = this.remaining / METERS_PER_YARD;
-    this.club = this.surface === 'green' ? 'putter' : yards <= 36 ? 'pitch' : yards <= 185 ? 'wedge' : 'driver';
+    this.club = this.surface === 'green' ? 'putter' : this.surface === 'sand' && yards < 95 ? 'sand' :
+      yards <= 36 ? 'pitch' : yards <= 88 ? 'gap' : yards <= 119 ? 'wedge' : yards <= 141 ? 'iron9' :
+      yards <= 160 ? 'iron7' : yards <= 185 ? 'iron5' : yards <= 210 ? 'hybrid4' : 'driver';
     this.configure(practice);
   }
 

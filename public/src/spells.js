@@ -77,7 +77,7 @@ const templates = RUNES.map(rune => ({
   samples: normalizedSamples(rune.path.map(([x, y]) => ({ x, y }))),
 }));
 
-function shapeScore(path, template) {
+function shapeScore(path, template, guided) {
   let direct = 0;
   let reverse = 0;
   for (const [i, [x, y]] of path.entries()) {
@@ -87,7 +87,8 @@ function shapeScore(path, template) {
     reverse += (x - rx) ** 2 + (y - ry) ** 2;
   }
   const error = Math.sqrt(Math.min(direct, reverse) / SAMPLE_COUNT);
-  return clamp01(1 - Math.max(0, error - 0.042) / 0.25);
+  const grace = guided ? .055 : .042;
+  return clamp01(1 - Math.max(0, error - grace) / (guided ? .29 : .25));
 }
 
 export function runeExit(points) {
@@ -114,10 +115,10 @@ export function runeExit(points) {
   return exit > top ? exit : -1;
 }
 
-function swingRhythm(swing, turn) {
+function swingRhythm(swing, turn, guided) {
   const exitGap = swing[1].t - swing[0].t;
   const turnGap = swing[turn + 1].t - swing[turn].t;
-  const holdPenalty = gap => clamp01((gap - 125) / 450);
+  const holdPenalty = gap => clamp01((gap - (guided ? 175 : 125)) / 450);
   const continuity = 1 - (holdPenalty(exitGap) + holdPenalty(turnGap)) / 2;
   const downTime = Math.max(1, swing[turn].t - swing[0].t);
   const upTime = Math.max(1, swing.at(-1).t - swing[turn].t);
@@ -137,12 +138,13 @@ export function analyzeStroke(points, mode, guideId) {
   }
   if (turn === 0 || turn === swing.length - 1) return fallback;
 
+  const guided = mode === 'guided';
   const path = normalizedSamples(points.slice(0, exit + 1));
   let match;
   let geometry = 0;
   for (const template of templates) {
-    if (mode === 'guided' && template.rune.id !== guideId) continue;
-    const score = shapeScore(path, template.samples);
+    if (guided && template.rune.id !== guideId) continue;
+    const score = shapeScore(path, template.samples, guided);
     if (score > geometry) {
       geometry = score;
       match = template.rune;
@@ -150,8 +152,9 @@ export function analyzeStroke(points, mode, guideId) {
   }
   if (!match || geometry < 0.69) return fallback;
 
-  const pace = clamp01(1 - Math.max(0, (swing[0].t - points[0].t) / match.pace - 1) / 1.45);
-  const rhythm = swingRhythm(swing, turn);
+  const paceTarget = match.pace * (guided ? 1.20 : 1);
+  const pace = clamp01(1 - Math.max(0, (swing[0].t - points[0].t) / paceTarget - 1) / 1.45);
+  const rhythm = swingRhythm(swing, turn, guided);
   const score = 0.5 * geometry + 0.2 * pace + 0.3 * rhythm;
   const purity = score >= 0.985 ? 1 : score;
   return {
@@ -163,7 +166,8 @@ export function analyzeStroke(points, mode, guideId) {
       type: match.type,
       direction: match.direction,
       purity,
-      potency: purity * (mode === 'guided' ? 0.6 : 1),
+      potency: purity * (guided ? 0.6 : 1),
+      guided,
       geometry,
       pace,
       rhythm,

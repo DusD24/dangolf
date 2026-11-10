@@ -1,3 +1,5 @@
+import { CLUBS } from './clubs.js';
+
 export const STEP = 1 / 120;
 export const METERS_PER_YARD = 0.9144;
 export const BALL_RADIUS = 0.043;
@@ -14,11 +16,6 @@ const TURF_BOUNCE = 0.12;
 const TURF_SPEED_RETENTION = 0.47;
 const ROLL_DECELERATION = 8.5;
 const GREEN_DECELERATION = 3.2;
-const CLUBS = {
-  driver: { speed: 1, loft: 0 },
-  wedge: { speed: .66, loft: .28 },
-  pitch: { speed: .36, loft: .42 },
-};
 const SURFACES = {
   fairway: { launch: 1, bounce: 1, roll: 1, putt: 1.4 },
   green: { launch: 1, bounce: .9, roll: GREEN_DECELERATION / ROLL_DECELERATION, putt: 1 },
@@ -54,7 +51,7 @@ export class Practice {
   }
 
   configure(club = 'driver', surfaceAt = () => 'fairway') {
-    this.clubType = club;
+    this.clubType = Object.hasOwn(CLUBS, club) ? club : 'driver';
     this.surfaceAt = surfaceAt;
     this.reset();
   }
@@ -82,9 +79,9 @@ export class Practice {
     this.club = this.clubPose();
   }
 
-  beginStroke(x, y) {
+  beginStroke(x, y, guided = false) {
     if (this.phase !== 'ready') return false;
-    this.stroke = { x, y, depth: 0, drift: 0 };
+    this.stroke = { x, y, depth: 0, drift: 0, guided };
     this.phase = 'drawing';
     return true;
   }
@@ -98,7 +95,9 @@ export class Practice {
     if (stroke.depth - depth > 0.008 && Math.abs(drift) > Math.abs(stroke.drift)) {
       stroke.drift = drift;
     }
-    this.charge = clamp(stroke.depth / FULL_PULL, 0, 1);
+    const power = clamp(stroke.depth / FULL_PULL, 0, 1);
+    const mark = Math.round(power * 4) / 4;
+    this.charge = stroke.guided && mark > 0 && Math.abs(mark - power) <= .0125 ? mark : power;
     this.angle = 0.40 - 2.12 * this.charge;
     this.staffAngle = this.angle * 0.76;
     this.club = this.clubPose();
@@ -133,6 +132,11 @@ export class Practice {
     this.impact = { at: this.elapsed, putt: true, stinger: 0, curve: 0 };
   }
 
+  puttEstimate() {
+    const surface = SURFACES[this.surfaceAt(this.ball)] ?? SURFACES.fairway;
+    return 22 * this.charge ** 2 / surface.putt;
+  }
+
   cancelStroke() {
     if (this.phase === 'drawing') this.reset();
   }
@@ -141,7 +145,8 @@ export class Practice {
     if (this.phase !== 'swing' || this.castAt !== null || this.impact || this.angularSpeed < 1) {
       return false;
     }
-    return this.approachTime <= SNAP_CUE_START && this.approachTime >= SNAP_CUE_END;
+    const grace = this.spell?.guided ? .014 : 0;
+    return this.approachTime <= SNAP_CUE_START + grace && this.approachTime >= SNAP_CUE_END - grace;
   }
 
   get approachTime() {
@@ -153,7 +158,8 @@ export class Practice {
     const atCue = this.snapCue;
     this.castAt = this.elapsed;
     const lead = this.approachTime;
-    const late = this.impact || lead < SNAP_CUE_END;
+    const grace = this.spell?.guided ? .014 : 0;
+    const late = this.impact || lead < SNAP_CUE_END - grace;
     this.castLabel = late ? 'Late cast' : atCue ? 'Clean snap' : 'Early cast';
 
     const alignment = Math.exp(-(((lead - 0.052) / 0.024) ** 2));
@@ -248,6 +254,7 @@ export class Practice {
       at: this.elapsed,
       spellEnergy,
       snapEnergy: this.spellSnapEnergy,
+      pure: Boolean(this.spell?.guided && this.spell.purity >= .90 && this.turfAt === null),
       stinger,
       curve: this.spell?.type === 'crescent' ? 4.4 * this.spell.direction * this.spell.potency : 0,
     };

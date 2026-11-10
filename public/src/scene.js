@@ -2,6 +2,8 @@ import { BALL_RADIUS, METERS_PER_YARD, TEE_X } from './practice.js';
 import { surfaceAt } from './course.js';
 import { drawCourseGround } from './course-view.js';
 import { createTeeView } from './view.js';
+import { POWER_MARKS } from './range-card.js';
+import { drawWizard } from './wizard.js';
 
 const TAU = Math.PI * 2;
 
@@ -10,16 +12,6 @@ function ellipse(ctx, x, y, rx, ry, color, rotation = 0) {
   ctx.ellipse(x, y, rx, ry, rotation, 0, TAU);
   ctx.fillStyle = color;
   ctx.fill();
-}
-
-function shape(ctx, path, fill, outline) {
-  const geometry = new Path2D(path);
-  ctx.fillStyle = fill;
-  ctx.fill(geometry);
-  if (outline) {
-    ctx.strokeStyle = outline;
-    ctx.stroke(geometry);
-  }
 }
 
 function gradient(ctx, top, bottom, height) {
@@ -31,9 +23,9 @@ function gradient(ctx, top, bottom, height) {
 
 function landscape(ctx, width, height, horizon) {
   const sky = ctx.createLinearGradient(0, 0, 0, height * 0.54);
-  sky.addColorStop(0, '#1b263c');
-  sky.addColorStop(0.56, '#52465c');
-  sky.addColorStop(1, '#d88970');
+  sky.addColorStop(0, '#11182c');
+  sky.addColorStop(0.51, '#453950');
+  sky.addColorStop(1, '#cf8778');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, width, height);
 
@@ -65,6 +57,23 @@ function landscape(ctx, width, height, horizon) {
     }
     ctx.lineTo(width, height);
     ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  for (let i = 0; i < 33; i++) {
+    const fraction = i / 32;
+    const x = fraction * width;
+    const base = horizon + 2;
+    const tree = height * (.013 + .023 * ((i * .613) % 1)) * (Math.abs(fraction - .50) + .63);
+    ctx.beginPath();
+    ctx.moveTo(x - tree * .32, base);
+    ctx.lineTo(x - tree * .14, base - tree * .44);
+    ctx.lineTo(x - tree * .22, base - tree * .39);
+    ctx.lineTo(x, base - tree);
+    ctx.lineTo(x + tree * .23, base - tree * .39);
+    ctx.lineTo(x + tree * .13, base - tree * .46);
+    ctx.lineTo(x + tree * .31, base);
+    ctx.fillStyle = i % 3 === 0 ? '#202e39' : '#283844';
     ctx.fill();
   }
 
@@ -158,84 +167,6 @@ function grass(ctx, point, width, height, horizon, round) {
   }
 }
 
-function wizard(ctx, foot, grip, staffTop, club, practice, scale) {
-  ellipse(ctx, foot.x + scale * .09, foot.y + scale * .02, scale * .34, scale * .071, '#101d28a6');
-
-  ctx.save();
-  ctx.translate(foot.x, foot.y);
-  ctx.scale(scale / 100, scale / 100);
-  ctx.lineWidth = 1.5;
-  ctx.lineJoin = 'round';
-  shape(ctx, 'M-17 -12 Q-10 -13 -3 -4 L-1 2 Q-10 7 -27 2 L-28 -3 Z', '#33272c');
-  shape(ctx, 'M10 -13 Q17 -12 22 -5 Q37 -3 32 4 Q18 8 6 2 L5 -4 Z', '#422d2c');
-
-  const moving = practice.phase === 'swing' || practice.phase === 'drawing';
-  const loadWobble = practice.phase === 'drawing' ? Math.sin(performance.now() / 67) * practice.charge * .055 : 0;
-  const stumble = practice.turfAt === null ? 0 : Math.max(0, 1 - (practice.elapsed - practice.turfAt) * 2) * .24;
-  ctx.rotate((moving ? Math.sin(practice.staffAngle) * .15 : .045) + loadWobble + stumble);
-  const robe = ctx.createLinearGradient(-37, -98, 30, -28);
-  robe.addColorStop(0, '#333453');
-  robe.addColorStop(.55, '#595083');
-  robe.addColorStop(1, '#2b314d');
-
-  shape(ctx, 'M-14 -104 Q-33 -98 -32 -73 Q-25 -56 -25 -35 L-33 -9 Q-10 -1 24 -9 L28 -19 Q11 -44 16 -73 Q22 -96 2 -104 Z', robe, '#26283e');
-  shape(ctx, 'M-19 -102 Q-30 -70 -21 -47 L-31 -10 Q-8 -1 20 -10 L12 -45 Q4 -67 15 -100 Z', '#72638a', '#403856');
-  shape(ctx, 'M-10 -88 Q-16 -54 -11 -29 L-15 -12 L-8 -12 Q-1 -43 -5 -60 L-5 -88 Z', '#a294af83');
-  shape(ctx, 'M-22 -94 Q-19 -110 1 -113 Q18 -113 20 -95 Q14 -84 2 -80 Q-12 -82 -22 -94 Z', '#403859', '#2c2b43');
-  shape(ctx, 'M-15 -95 Q0 -89 15 -99 Q12 -88 2 -85 Q-9 -87 -15 -95 Z', '#8b7794');
-  shape(ctx, 'M-15 -131 Q-12 -148 7 -146 Q23 -144 22 -125 L28 -120 L21 -117 L19 -107 Q1 -100 -11 -112 Z', '#cb9a83', '#56394d');
-  shape(ctx, 'M-16 -139 Q5 -146 14 -135 Q9 -126 12 -114 Q4 -107 -7 -110 Q-18 -118 -16 -139 Z', '#bcb1bd', '#8d7f96');
-  shape(ctx, 'M19 -121 L26 -119 L21 -110 Q23 -95 14 -88 L12 -100 L15 -109 Z', '#e7d7ca', '#9d8e9c');
-  shape(ctx, 'M-18 -145 Q-18 -156 -11 -168 L10 -182 L2 -166 Q12 -164 23 -145 Z', '#51466e', '#302e4c');
-  shape(ctx, 'M-19 -150 Q-2 -146 19 -151 L23 -144 Q5 -139 -21 -143 Z', '#c38d64');
-  shape(ctx, 'M-34 -144 Q-21 -148 2 -146 Q17 -145 32 -149 Q33 -141 20 -137 Q-11 -134 -34 -139 Z', '#414166', '#2a2d45');
-  ctx.restore();
-
-  const shoulder = { x: foot.x + scale * .04, y: foot.y - scale * .88 };
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(shoulder.x, shoulder.y);
-  ctx.quadraticCurveTo(shoulder.x + scale * .18, shoulder.y + scale * .15, grip.x, grip.y);
-  ctx.strokeStyle = '#615785';
-  ctx.lineWidth = scale * .14;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(grip.x * 1.72 - staffTop.x * .72, grip.y * 1.72 - staffTop.y * .72);
-  ctx.lineTo(staffTop.x, staffTop.y);
-  ctx.strokeStyle = '#3d2b36';
-  ctx.lineWidth = scale * .067;
-  ctx.stroke();
-  ctx.strokeStyle = '#bb8963';
-  ctx.lineWidth = scale * .035;
-  ctx.stroke();
-  ellipse(ctx, grip.x, grip.y, scale * .052, scale * .045, '#dbab90');
-
-  const castAge = practice.castAt === null ? Infinity : practice.elapsed - practice.castAt;
-  const casting = castAge < .19;
-  const glow = practice.snapCue ? '#fff5b8' : casting ? '#ffd277' : '#a5e9e0';
-  ctx.beginPath();
-  ctx.moveTo(staffTop.x, staffTop.y);
-  ctx.quadraticCurveTo((staffTop.x + club.x) / 2, (staffTop.y + club.y) / 2 + scale * .20, club.x, club.y);
-  ctx.strokeStyle = glow;
-  ctx.lineWidth = casting ? 3 : 1.5;
-  ctx.shadowColor = glow;
-  ctx.shadowBlur = casting ? 16 : 7;
-  ctx.stroke();
-
-  ellipse(ctx, staffTop.x, staffTop.y, scale * .049, scale * .055, glow, .4);
-  ellipse(ctx, club.x, club.y, scale * .073, scale * .042, glow, practice.angle * .50);
-  ellipse(ctx, club.x - scale * .018, club.y - scale * .008, scale * .040, scale * .017, '#f6fff0', practice.angle * .50);
-  ctx.shadowBlur = 0;
-  if (practice.snapCue) {
-    ctx.strokeStyle = '#ffe2a0';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(club.x, club.y, scale * .115, 0, TAU);
-    ctx.stroke();
-  }
-}
-
 function sparks(ctx, origin, age, scale, color, count) {
   if (age < 0 || age > .31) return;
   ctx.save();
@@ -249,7 +180,7 @@ function sparks(ctx, origin, age, scale, color, count) {
 }
 
 function drawGuide(ctx, guide) {
-  const { x, y, scale, pull, path, channelOnly } = guide;
+  const { x, y, scale, pull, path, channelOnly, charge } = guide;
   const halfWidth = Math.max(8, scale * .11);
   ctx.save();
   ctx.lineWidth = 1.5;
@@ -261,8 +192,28 @@ function drawGuide(ctx, guide) {
   ctx.lineTo(x + halfWidth, y + pull);
   ctx.lineTo(x + halfWidth, y);
   ctx.stroke();
-  if (!channelOnly) {
-    ctx.setLineDash([]);
+  ctx.setLineDash([]);
+  if (charge > 0) {
+    ctx.fillStyle = '#99fbe230';
+    ctx.fillRect(x - halfWidth + 2, y, halfWidth * 2 - 4, pull * charge);
+  }
+  ctx.font = '700 11px system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+  for (const mark of POWER_MARKS) {
+    const tick = y + pull * mark / 100;
+    const reached = charge * 100 + .35 >= mark;
+    ctx.strokeStyle = reached ? '#ffdc91' : '#d1e5d0a0';
+    ctx.beginPath();
+    ctx.moveTo(x - halfWidth, tick);
+    ctx.lineTo(x + halfWidth + 5, tick);
+    ctx.stroke();
+    ctx.shadowColor = '#172633';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = reached ? '#ffe7a4' : '#f2ecd5';
+    ctx.fillText(mark + '%', x + halfWidth + 8, tick);
+    ctx.shadowBlur = 0;
+  }
+  if (path && !channelOnly) {
     ctx.beginPath();
     ctx.moveTo(x, y);
     for (const [dx, dy] of path.slice(1)) ctx.lineTo(x + dx * scale, y + dy * scale);
@@ -281,7 +232,7 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
   grass(ctx, point, width, height, horizon, round);
 
   const tee = point(TEE_X, 0, 0);
-  const aim = point(round?.club === 'putter' ? Math.min(5, round.remaining + TEE_X) : 17, 0, 0);
+  const aim = point(practice.clubType === 'putter' ? Math.min(5, (round?.remaining ?? 5) + TEE_X) : 17, 0, 0);
   ellipse(ctx, tee.x, tee.y, tee.scale * .17, tee.scale * .062, '#c3d69e66');
   ctx.beginPath();
   ctx.moveTo(tee.x, tee.y - tee.scale * .09);
@@ -292,15 +243,7 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
   ctx.stroke();
   ctx.setLineDash([]);
 
-  const foot = point(-.43, 0, -.76);
-  const grip = point(0, 1.005, practice.steer * .10);
-  const staffTop = point(
-    Math.sin(practice.staffAngle) * .34,
-    1.005 + Math.cos(practice.staffAngle) * .34,
-    practice.steer * .10,
-  );
-  const club = point(practice.club.x, practice.club.y, practice.club.z);
-  wizard(ctx, foot, grip, staffTop, club, practice, foot.scale);
+  drawWizard(ctx, point, practice);
 
   if (flight.length > 1) {
     const start = point(flight[0].x, flight[0].y, flight[0].z);
@@ -310,9 +253,13 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
       const dot = point(sample.x, sample.y, sample.z);
       ctx.lineTo(dot.x, dot.y);
     }
-    ctx.lineWidth = 1.75;
-    ctx.strokeStyle = '#fff2baaa';
+    ctx.save();
+    ctx.lineWidth = practice.impact?.pure ? 2.6 : 1.65;
+    ctx.shadowBlur = practice.spell ? 11 : 5;
+    ctx.shadowColor = practice.impact?.pure ? '#ffbf7a' : '#82e6d3';
+    ctx.strokeStyle = practice.impact?.pure ? '#ffedb3' : practice.spell ? '#b0ffebba' : '#fff2baaa';
     ctx.stroke();
+    ctx.restore();
   }
 
   const { ball } = practice;
@@ -324,14 +271,31 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
   ellipse(ctx, ballPoint.x + radius * .25, ballPoint.y + radius * .30, radius * .43, radius * .27, '#b1b49f');
 
   if (practice.impact) {
-    sparks(ctx, tee, practice.elapsed - practice.impact.at, tee.scale, '#ffefae', 11);
+    const age = practice.elapsed - practice.impact.at;
+    const pure = practice.impact.pure;
+    sparks(ctx, tee, age, tee.scale, pure ? '#ffce79' : '#ffefae', pure ? 22 : 11);
+    if (pure && age < .46) {
+      ctx.save();
+      ctx.globalAlpha = 1 - age / .46;
+      ctx.strokeStyle = '#ffd28b';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#ffc370';
+      ctx.shadowBlur = 12;
+      for (const offset of [0, .07]) {
+        const radius = tee.scale * (.08 + age * (1.15 + offset * 4) + offset);
+        ctx.beginPath();
+        ctx.ellipse(tee.x, tee.y, radius, radius * .38, 0, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
   }
   if (practice.turfAt !== null) {
     sparks(ctx, point(-.07, .03, practice.steer * .10), practice.elapsed - practice.turfAt, tee.scale, '#c6ad73', 14);
   }
 
   if (guide) {
-    if (guide.path) drawGuide(ctx, guide);
+    if (guide.marked) drawGuide(ctx, guide);
     ellipse(ctx, guide.x, guide.y, 4, 4, '#f0d29b');
   }
 

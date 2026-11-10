@@ -32,23 +32,10 @@
     <footer class="thumb-controls" aria-label="Game controls">
       <div class="choices">
         <div class="spell-tools">
-          <select id="spell-mode" aria-label="Spell difficulty">
-            <option value="guided">Guided</option>
-            <option value="hard">Hard</option>
-          </select>
-          <select id="rune-guide" aria-label="Rune to trace">
-            <option value="crescent-right">Crescent →</option>
-            <option value="crescent-left">Crescent ←</option>
-            <option value="sword">Sword</option>
-            <option value="star">Five-point star</option>
-          </select>
+          <button class="gear-slot" id="spell-mode" type="button" aria-label="Toggle Guided or Hard casting">Guided</button>
+          <button class="gear-slot" id="rune-guide" type="button" aria-haspopup="dialog">Spellbook</button>
         </div>
-        <select id="club-choice" aria-label="Club" hidden>
-          <option value="driver">Driver</option>
-          <option value="wedge">Wedge</option>
-          <option value="pitch">Pitch</option>
-          <option value="putter">Putter</option>
-        </select>
+        <button class="gear-slot" id="club-choice" type="button" aria-haspopup="dialog">Club bag</button>
       </div>
       <div class="actions">
         <button id="hole-map" type="button" hidden>Aim / Map</button>
@@ -58,7 +45,29 @@
         <button id="round-next" type="button" hidden>Play next shot</button>
       </div>
     </footer>
-    <dialog id="round-dialog" aria-labelledby="dialog-title">
+    <dialog class="game-dialog gear-dialog" id="gear-dialog" aria-labelledby="gear-title">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">Moonfen equipment</p><h2 id="gear-title"></h2></div>
+        <form method="dialog"><button aria-label="Close equipment" value="close">Close</button></form>
+      </div>
+      <section id="spellbook" hidden>
+        <p class="panel-note">Choose the rune you want to trace.</p>
+        <div class="rune-grid" id="rune-grid"></div>
+      </section>
+      <section id="club-bag" hidden>
+        <div class="club-grid" id="club-grid" aria-label="Fourteen clubs"></div>
+        <div class="range-card">
+          <div class="range-heading"><strong id="bag-selected"></strong><span id="bag-metric"></span></div>
+          <p class="panel-note">Flat range estimates. Spells and the lie change yardage.</p>
+          <table>
+            <thead><tr><th scope="col">Power</th><th scope="col">Plain</th><th scope="col">Centered snap</th></tr></thead>
+            <tbody id="bag-ranges"></tbody>
+          </table>
+        </div>
+        <button class="equip-club" id="equip-club" type="button">Equip club</button>
+      </section>
+    </dialog>
+    <dialog class="game-dialog" id="round-dialog" aria-labelledby="dialog-title">
       <div class="dialog-heading">
         <h2 id="dialog-title"></h2>
         <form method="dialog"><button aria-label="Close" value="close">Close</button></form>

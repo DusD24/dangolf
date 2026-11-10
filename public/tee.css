@@ -1,8 +1,12 @@
 :root {
   color-scheme: dark;
   font-family: system-ui, sans-serif;
-  color: #f4eedc;
-  background: #182433;
+  color: #f6ecd6;
+  background: #171826;
+  --gold: #e5bc81;
+  --gold-line: #b88c5e85;
+  --velvet: #211d32;
+  --midnight: #141b28;
 }
 
 * { box-sizing: border-box; }
@@ -43,6 +47,15 @@ p, h1, dl, dd { margin: 0; }
 }
 
 .brand { grid-area: brand; }
+.brand .eyebrow { color: #f0cc91; letter-spacing: .22em; }
+.brand h1::after {
+  content: "";
+  display: block;
+  width: min(100%, 10rem);
+  height: 1px;
+  margin: .16em 0 .05em;
+  background: linear-gradient(90deg, #e9bb7c, #bf8b5f60 70%, transparent);
+}
 #hole-info { grid-area: course; }
 
 .eyebrow {
@@ -56,25 +69,32 @@ p, h1, dl, dd { margin: 0; }
 h1 {
   font: 700 clamp(2.45rem, 7vw, 4.7rem)/.98 Georgia, serif;
   letter-spacing: -.055em;
-  text-shadow: 0 3px 24px #111d2e;
+  color: #fff0cb;
+  text-shadow: 0 2px #503a4b, 0 5px 24px #121425;
 }
 
 button {
   min-height: 44px;
   padding: 0 10px;
-  border: 1px solid #eac38066;
-  border-radius: 7px;
-  background: #142131dc;
+  border: 1px solid var(--gold-line);
+  border-radius: 8px 4px;
+  background: linear-gradient(145deg, #323044, var(--midnight) 75%);
+  box-shadow: inset 0 0 0 2px #0d1324a0, inset 0 1px #e6c19037, 0 2px 6px #10102156;
   color: inherit;
   font: 650 .85rem/1 system-ui, sans-serif;
   white-space: nowrap;
   pointer-events: auto;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-button:hover, button:focus-visible { background: #323b44; }
+button:hover, button:focus-visible {
+  border-color: var(--gold);
+  background: linear-gradient(145deg, #4b3a51, #253344 80%);
+}
 button:focus-visible { outline: 2px solid #eac380; outline-offset: 3px; }
+button:active:not(:disabled) { border-color: #ffe2a7; }
 
 .thumb-controls {
   position: absolute;
@@ -98,19 +118,34 @@ button:focus-visible { outline: 2px solid #eac380; outline-offset: 3px; }
 
 .actions { justify-content: flex-end; margin-inline-start: auto; }
 
-.thumb-controls select {
+.gear-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+  padding-inline: 8px;
   min-height: 44px;
-  max-width: 100%;
-  border: 1px solid #eac38066;
-  border-radius: 6px;
-  padding: 0 7px;
-  background: #142131dc;
-  color: inherit;
-  font: 650 .8rem system-ui, sans-serif;
-  pointer-events: auto;
 }
-
-select:focus-visible { outline: 2px solid #eac380; outline-offset: 2px; }
+.gear-slot svg, .rune-grid svg, .club-grid svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+  color: #c1fff0;
+  filter: drop-shadow(0 0 4px #69dfc38a);
+  flex: none;
+}
+.gear-slot:first-child svg { color: #f0cc91; filter: drop-shadow(0 0 4px #efa97090); }
+.gear-slot span { display: grid; gap: 3px; }
+.gear-slot small {
+  font-size: .53rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .11em;
+  color: #dfb882;
+}
+.gear-slot strong { font: 700 .87rem/1 Georgia, serif; }
+#hole-map::before { content: "⌖"; color: #ebc387; margin-right: 4px; }
+#scorecard::before { content: "▤"; color: #ebc387; margin-right: 4px; }
 
 .instructions { grid-area: instructions; }
 #prompt { margin-top: 3px; font-size: .85rem; line-height: 1.3; }
@@ -121,7 +156,8 @@ select:focus-visible { outline: 2px solid #eac380; outline-offset: 2px; }
   gap: clamp(12px, 4.5vw, 34px);
 }
 
-.stats div { min-width: 54px; }
+.stats div { min-width: 54px; border-top: 1px solid #a78c6b67; padding-top: 4px; }
+.pure-strike #phase { color: #ffdf8d; text-shadow: 0 0 12px #ffb774af, 0 2px 6px #101924; }
 .stats dt { color: #e5dec8; font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; }
 .stats dd { margin-top: 2px; font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 
@@ -138,22 +174,64 @@ select:focus-visible { outline: 2px solid #eac380; outline-offset: 2px; }
   h1 { font-size: 2.25rem; }
 }
 
-#round-next { background: #dcb378; color: #211f22; }
+#round-next, .equip-club {
+  background: linear-gradient(145deg, #f6d79e, #c8955d 86%);
+  color: #211b23;
+  border-color: #f7d498;
+  box-shadow: inset 0 0 0 2px #63462f44, 0 2px 9px #15111e72;
+}
 button:disabled, select:disabled { opacity: .55; cursor: default; }
 
-#round-dialog {
+.game-dialog {
   width: min(410px, calc(100% - 24px));
   max-height: calc(100% - 24px);
   overflow: auto;
-  padding: 16px;
+  padding: 17px;
   color: inherit;
-  border: 1px solid #eac38066;
-  border-radius: 12px;
-  background: #192b35;
+  border: 1px solid #d2a36e;
+  border-radius: 14px 7px;
+  background: radial-gradient(ellipse at 88% 0%, #4c3551b5, transparent 55%),
+    linear-gradient(147deg, #2b263f, #172834 67%, #192b35);
+  box-shadow: inset 0 0 0 3px #161728, inset 0 0 0 4px #c998656b, 0 12px 42px #101522b0;
 }
-#round-dialog::backdrop { background: #121925ba; }
+.game-dialog::backdrop { background: #111421c4; }
 .dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.dialog-heading h2 { margin: 0; font: 700 1.4rem Georgia, serif; }
+.dialog-heading h2 { margin: 2px 0 0; color: #ffe5b6; font: 700 1.63rem Georgia, serif; }
+.dialog-heading { padding-bottom: 9px; border-bottom: 1px solid #bd906759; }
+.gear-dialog { width: min(470px, calc(100% - 24px)); }
+.panel-note { color: #d7c8b8; font-size: .76rem; line-height: 1.45; margin: 7px 0 10px; }
+.rune-grid, .club-grid { display: grid; gap: 7px; }
+.rune-grid { grid-template-columns: repeat(2, 1fr); }
+.club-grid { grid-template-columns: repeat(4, 1fr); margin: 11px 0; }
+.rune-grid button, .club-grid button {
+  min-width: 0;
+  padding: 6px 4px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  white-space: normal;
+  text-align: center;
+}
+.rune-grid button { min-height: 92px; }
+.club-grid button { min-height: 66px; }
+.rune-grid strong, .club-grid strong { color: #ffe3ae; font: 700 1rem/1 Georgia, serif; }
+.rune-grid small, .club-grid small { font-size: .66rem; line-height: 1.15; color: #e5d9c9; }
+.rune-grid button[aria-pressed="true"], .club-grid button[aria-pressed="true"] {
+  border-color: #edc789;
+  background: radial-gradient(ellipse at 50% 28%, #74604875, transparent 75%), linear-gradient(145deg, #493447, #203740);
+  box-shadow: inset 0 0 0 2px #181924, inset 0 0 0 3px #f0c47e3d, 0 0 9px #f0ae693f;
+}
+.range-card { border-block: 1px solid #bc916c69; padding: 8px 2px; }
+.range-heading { display: flex; justify-content: space-between; align-items: baseline; color: #ffdda2; font-family: Georgia, serif; }
+.range-heading span { color: #dec59e; font: 700 .65rem system-ui, sans-serif; text-transform: uppercase; letter-spacing: .10em; }
+.range-card table { width: 100%; border-collapse: collapse; text-align: right; font-size: .79rem; font-variant-numeric: tabular-nums; }
+.range-card th, .range-card td { padding: 4px 5px; }
+.range-card th:first-child { text-align: left; }
+.range-card thead { color: #e7ba80; }
+.range-card tbody tr:nth-child(odd) { background: #ffffff08; }
+.equip-club { width: 100%; margin-top: 10px; }
+.equip-club:hover { background: #f6d79e; }
 #map-tip { margin: 10px 0; font-size: .85rem; line-height: 1.4; }
 #map-canvas { display: block; width: 100%; max-height: 58dvh; border-radius: 6px; touch-action: manipulation; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 8px 0; font-size: .76rem; }
@@ -168,6 +246,21 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
 
 @media (max-width: 360px) {
   .masthead { column-gap: 8px; }
-  .thumb-controls button { padding-inline: 8px; }
+  .thumb-controls button { padding-inline: 7px; }
+  .gear-slot { gap: 4px; }
+  .gear-slot svg { width: 17px; height: 17px; }
+  .gear-slot strong { font-size: .79rem; }
+  #spell-mode { width: 76px; }
+  #rune-guide { width: 110px; }
+  #club-choice { width: 98px; }
   h1 { font-size: 2.1rem; }
+}
+
+@media (max-height: 640px) {
+  .gear-dialog { padding: 13px; }
+  .club-grid { gap: 5px; margin-block: 8px; }
+  .club-grid button { min-height: 44px; padding-block: 3px; }
+  .club-grid button small { display: none; }
+  .club-grid svg { width: 21px; height: 17px; }
+  .range-card th, .range-card td { padding-block: 3px; }
 }

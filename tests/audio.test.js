@@ -47,3 +47,17 @@ test('real crooked swings can produce either a clean whiff or a turf chunk', () 
     assert.deepEqual(shotCue(practice), { base: outcome, rune: 'star', success: false, blast: false });
   }
 });
+
+test('clean 90% Guided contact adds a celebration without upgrading a turf strike', () => {
+  for (const [purity, celebrate] of [[.89, false], [.90, true], [.96, true]]) {
+    const practice = new Practice();
+    practice.beginStroke(.5, .3);
+    practice.moveStroke(.5, .75);
+    practice.releaseStroke(.5, .3, { type: 'star', purity, potency: purity * .6, guided: true });
+    for (let step = 0; step < 100 && !practice.impact; step++) practice.step();
+    assert.equal(Boolean(shotCue(practice).celebrate), celebrate);
+    practice.turfAt = practice.impact.at;
+    assert.equal(shotCue(practice).base, 'turf');
+    assert.equal(Boolean(shotCue(practice).celebrate), false);
+  }
+});

@@ -11,7 +11,9 @@ export function shotCue(practice) {
     const blast = rune === 'star' && impact.spellEnergy >= 1.25;
     const clean = Math.abs(practice.steer) < 0.22 &&
       (practice.castLabel === 'Clean snap' || (spell?.purity ?? 0) >= 0.86);
-    return { base: blast || clean ? 'pure' : 'strike', rune, success: true, blast };
+    const cue = { base: blast || clean || impact.pure ? 'pure' : 'strike', rune, success: true, blast };
+    if (impact.pure) cue.celebrate = true;
+    return cue;
   }
   if (phase === 'result' || (phase === 'swing' && practice.club.x > TEE_X + 0.15)) {
     return { base: 'whiff', rune, success: false, blast: false };
@@ -67,6 +69,11 @@ function tone(context, output, at, from, to, duration, volume, type = 'sine') {
 }
 
 function baseSound(context, out, at, base) {
+  if (base === 'swing') {
+    noise(context, out, at, 430, 2800, .23, .30, { attack: .085, q: 1.12 });
+    noise(context, out, at + .064, 950, 3600, .14, .12, { attack: .047 });
+    return;
+  }
   if (base === 'putt') {
     tone(context, out, at, 1120, 735, .048, .15);
     noise(context, out, at, 1640, 790, .031, .18);
@@ -124,6 +131,13 @@ export function playShotSound(context, cue, destination = context.destination) {
   const at = context.currentTime + .006;
   baseSound(context, out, at, cue.base);
   if (cue.rune) runeSound(context, out, at + .02, cue.rune, cue.success);
+  if (cue.celebrate) {
+    tone(context, out, at + .033, 196, 147, .19, .20, 'triangle');
+    tone(context, out, at + .050, 659, 657, .29, .13);
+    tone(context, out, at + .089, 988, 985, .36, .12);
+    tone(context, out, at + .14, 1319, 1314, .42, .105);
+    noise(context, out, at + .055, 5100, 2520, .31, .15, { attack: .034, q: 1.3 });
+  }
   if (cue.blast) {
     tone(context, out, at + .028, 125, 38, .30, .48, 'triangle');
     noise(context, out, at + .023, 1850, 125, .34, .65, { type: 'lowpass' });
