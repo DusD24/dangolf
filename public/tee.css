@@ -232,12 +232,137 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
 .range-card tbody tr:nth-child(odd) { background: #ffffff08; }
 .equip-club { width: 100%; margin-top: 10px; }
 .equip-club:hover { background: #f6d79e; }
-#map-tip { margin: 10px 0; font-size: .85rem; line-height: 1.4; }
-#map-canvas { display: block; width: 100%; max-height: 58dvh; border-radius: 6px; touch-action: manipulation; }
-.map-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 8px 0; font-size: .76rem; }
-.map-legend span:nth-child(2) { color: #f0b36d; }
-.map-legend span:nth-child(3) { color: #99c6db; }
-.map-legend span:nth-child(4) { color: #dfc096; }
+/* The live chart shares the HUD so it stays clear of the ball and thumb controls. */
+.masthead.course-hud {
+  grid-template: "brand mini" "stats mini" "course mini" "instructions instructions" / minmax(0, 1fr) auto;
+}
+.course-hud .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.course-hud .stats div { min-width: 0; }
+.course-hud .stats dt { white-space: nowrap; }
+.course-hud .stats dd { white-space: nowrap; }
+.mini-course {
+  grid-area: mini;
+  align-self: start;
+  width: clamp(86px, 24vw, 112px);
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--gold-line);
+  border-radius: 8px 4px;
+  background: #18242cec;
+  box-shadow: 0 3px 15px #10172488;
+}
+#mini-map { display: block; width: 100%; height: clamp(78px, 15dvh, 108px); border-radius: 4px; }
+.mini-course figcaption {
+  padding: 4px 0 2px;
+  color: #f2d2a3;
+  font-size: .59rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.chart-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  border-radius: 0;
+}
+.chart-dialog[open] { display: flex; flex-direction: column; overflow: hidden; }
+.chart-dialog .dialog-heading { flex: none; }
+#map-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.chart-dialog .dialog-heading, #map-content { width: min(100%, 1080px); margin-inline: auto; }
+.chart-dialog .dialog-heading h2 { font-size: clamp(1.35rem, 5vw, 2rem); }
+.chart-layout {
+  display: grid;
+  gap: 11px 20px;
+  align-content: start;
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 9px 0 8px;
+}
+.chart-field, .chart-planner { min-width: 0; }
+.chart-readout { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-bottom: 6px; font-size: .76rem; color: #e2c6a0; }
+.chart-readout strong { margin-left: 3px; color: #fff1d5; font-variant-numeric: tabular-nums; }
+#map-canvas {
+  display: block;
+  width: 100%;
+  height: clamp(164px, 34dvh, 325px);
+  border: 1px solid #be9e6c7a;
+  border-radius: 8px 4px;
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+.map-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-size: .68rem; }
+.map-legend span::before { content: "●"; margin-right: 4px; }
+.key-ball { color: #fff8e6; }
+.key-pin { color: #ffd08d; }
+.key-water { color: #a5dfef; }
+.key-sand { color: #e8c18b; }
+.key-stock { color: #b8f2dc; }
+.key-snap { color: #dcb1ff; }
+.chart-hazards { margin: 7px 0 0; color: #f2d4aa; font-size: .76rem; line-height: 1.35; }
+#map-tip { margin: 0; }
+.chart-planner {
+  padding: 8px;
+  border: 1px solid #bd90676b;
+  border-radius: 9px 5px;
+  background: linear-gradient(145deg, #42324d50, #132a32d9);
+}
+.chart-planner .range-heading { gap: 5px; margin: 4px 0 6px; }
+.chart-planner .range-heading span { text-align: right; }
+.chart-clubs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.chart-clubs button, .chart-range button { width: 100%; padding-inline: 0; font-size: .75rem; }
+.chart-clubs button[aria-pressed="true"], .chart-range button[aria-pressed="true"] {
+  color: #fff1c9;
+  border-color: #e6bd80;
+  background: linear-gradient(145deg, #695047, #293a43);
+}
+.chart-range { width: 100%; margin-top: 6px; border-spacing: 3px 1px; font-size: .72rem; font-variant-numeric: tabular-nums; }
+.chart-range th:first-child { text-align: left; color: #e2c4a0; }
+.chart-range th, .chart-range td { text-align: center; padding: 3px 0; }
+.chart-range th button { display: block; }
+.chart-range td.picked { color: #fff2c5; background: #ac805c3d; border-radius: 3px; }
+.chart-planner .panel-note { margin: 5px 0 0; }
+.chart-actions {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 0 2px;
+  border-top: 1px solid #bd906759;
+}
+.chart-actions form { margin-left: auto; }
+#map-return { border-color: #e9bd83; color: #ffebbf; }
+
+@media (min-width: 650px) {
+  .masthead.course-hud {
+    grid-template: "brand stats mini" "course instructions mini" / minmax(0, 1fr) auto auto;
+  }
+  .course-hud .stats { gap: clamp(12px, 3vw, 34px); }
+  .course-hud .stats div { min-width: 54px; }
+  .chart-layout { grid-template-columns: minmax(0, 1.34fr) minmax(260px, 1fr); align-items: start; }
+  #map-canvas { height: clamp(190px, 68dvh, 570px); }
+  .chart-planner { padding: 14px; }
+}
+@media (max-width: 420px) {
+  .masthead.course-hud { column-gap: 6px; }
+  .course-hud .stats { gap: 4px; }
+  .course-hud .stats dt { font-size: .55rem; }
+  .course-hud .stats dd { font-size: .87rem; }
+}
+@media (max-height: 650px) and (max-width: 649px) {
+  .chart-layout { gap: 7px; padding-top: 6px; }
+  #map-canvas { height: clamp(145px, 27dvh, 165px); }
+  .chart-planner .panel-note, #map-tip { font-size: .68rem; }
+  .chart-dialog .dialog-heading { padding-bottom: 5px; }
+}
 #card-content table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .86rem; }
 #card-content th, #card-content td { text-align: right; padding: 7px 4px; border-bottom: 1px solid #ffffff25; }
 #card-content th:first-child, #card-content td:first-child { text-align: left; }

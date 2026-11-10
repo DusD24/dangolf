@@ -1,7 +1,7 @@
 import { createShotAudio, shotCue } from './audio.js';
 import { COURSE_NAME } from './course.js';
 import { createGear } from './gear.js';
-import { drawHoleMap } from './course-view.js';
+import { createCourseMaps } from './course-maps.js';
 import { Round } from './round.js';
 import { BALL_RADIUS, FULL_PULL, METERS_PER_YARD, Practice, PUTT_PULL, STEP } from './practice.js';
 import { drawScene } from './scene.js';
@@ -20,11 +20,8 @@ const roundNext = document.querySelector('#round-next');
 const holeInfo = document.querySelector('#hole-info');
 const toPin = document.querySelector('#to-pin');
 const dialog = document.querySelector('#round-dialog');
-const mapCanvas = document.querySelector('#map-canvas');
-const mapTip = document.querySelector('#map-tip');
 const mapContent = document.querySelector('#map-content');
 const cardContent = document.querySelector('#card-content');
-const aimAtPin = document.querySelector('#aim-at-pin');
 const phase = document.querySelector('#phase');
 const prompt = document.querySelector('#prompt');
 const load = document.querySelector('#load');
@@ -37,7 +34,10 @@ const flight = [];
 let round = null;
 let rangeClub = 'driver';
 const gear = createGear({ equip: equipClub, changeSpell: resetReadyShot });
-let mapPoint = null;
+const courseMaps = createCourseMaps({
+  dialog, equipClub,
+  setAim: target => practice.phase === 'ready' && round?.setAim(target),
+});
 let width = 0;
 let height = 0;
 let pointer = null;
@@ -256,6 +256,7 @@ roundNext.addEventListener('click', () => {
 });
 
 function openScorecard() {
+  dialog.classList.remove('chart-dialog');
   document.querySelector('#dialog-title').textContent = COURSE_NAME + ' scorecard';
   mapContent.hidden = true;
   cardContent.hidden = false;
@@ -277,28 +278,7 @@ function openScorecard() {
 }
 
 scorecardButton.addEventListener('click', openScorecard);
-holeMapButton.addEventListener('click', () => {
-  document.querySelector('#dialog-title').textContent = (round.index + 1) + ' · ' + round.hole.name;
-  mapContent.hidden = false;
-  cardContent.hidden = true;
-  const ready = round.status === 'ready' && practice.phase === 'ready';
-  mapTip.textContent = round.hole.tip + (ready ? ' Tap a spot to aim there.' : '');
-  aimAtPin.hidden = !ready;
-  const ball = round.landing ?? (ready ? round.lie : round.worldPoint(practice.ball));
-  mapPoint = drawHoleMap(mapCanvas, round, ball);
-  dialog.showModal();
-});
-
-function aimAt(target) {
-  if (practice.phase === 'ready' && round?.setAim(target)) dialog.close();
-}
-
-mapCanvas.addEventListener('click', event => {
-  const bounds = mapCanvas.getBoundingClientRect();
-  aimAt(mapPoint((event.clientX - bounds.left) * mapCanvas.width / bounds.width,
-    (event.clientY - bounds.top) * mapCanvas.height / bounds.height));
-});
-aimAtPin.addEventListener('click', () => aimAt(round.hole.pin));
+holeMapButton.addEventListener('click', () => courseMaps.open());
 
 const choices = document.querySelector('.choices');
 const spellTools = document.querySelector('.spell-tools');
@@ -319,13 +299,18 @@ function updateCourse() {
   playCourse.disabled = round?.status === 'playing';
   show(playCourse, round ? 'Practice' : 'Play 9');
   show(courseName, round ? COURSE_NAME : 'Wizard golf');
-  if (!round) return;
+  header.classList.toggle('course-hud', Boolean(round));
+  if (!round) {
+    courseMaps.update(null);
+    return;
+  }
   const hole = round.hole;
   const lie = round.atTee ? 'Tee' : lieLabels[round.surface];
   show(holeInfo, 'Hole ' + (round.index + 1) + '/9 · Par ' + hole.par + ' · ' + hole.yards + ' yd · ' +
     (round.status === 'complete' ? scoreLabel(round.toPar) : lie + ' · ' + round.strokes + ' strokes'));
   const ball = round.landing ?? (round.status === 'playing' ? round.worldPoint(practice.ball) : round.lie);
   show(toPin, pinDistance(Math.hypot(hole.pin.x - ball.x, hole.pin.z - ball.z)));
+  courseMaps.update(round, ball, pointer === null && round.status === 'ready' && practice.phase === 'ready');
   show(roundNext, round.status === 'shot-over' ? 'Play next shot' :
     round.status === 'complete' ? 'Play again' : round.index === 8 ? 'Finish round' : 'Next hole');
 }

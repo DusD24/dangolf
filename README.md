@@ -6,7 +6,8 @@ A one-thumb wizard golf prototype. The practice tee runs in a phone or desktop b
 
 Choose **Play 9** at the practice tee for the first course. Moonfen Links is a par-35 nine with three par 3s, four par 4s, and two par 5s.
 
-- Open **Aim / Map** and tap a target to change your line. The club selection starts with a suggestion for your current lie.
+- Check the live minimap for the ball, flag, and hazards. It shows the nearest hazard crossed by your current aim line.
+- Open **Aim / Map** to tap a target, equip a club, and preview plain or snapped carry at 25%, 50%, 75%, and 100% power. The distances account for your lie. Choose **Back to shot** to return and pull to the power you want.
 - Play the next shot from where the ball stops. Water and out of bounds add one stroke and send you back to the previous lie.
 - On the green, pull back to set putt power and lift to roll. Sink the putt to record the hole and advance. Open **Scorecard** to see the round so far.
 

@@ -24,6 +24,10 @@
         <div id="pin-stat" hidden><dt>To pin</dt><dd id="to-pin">—</dd></div>
       </dl>
       <p id="hole-info" class="eyebrow" hidden></p>
+      <figure class="mini-course" id="mini-course" hidden>
+        <canvas id="mini-map" aria-label="Live overhead view of the ball, flag and hazards"></canvas>
+        <figcaption id="mini-caption">Hole map</figcaption>
+      </figure>
       <div class="instructions">
         <p class="eyebrow" id="phase" role="status">Practice tee</p>
         <p id="prompt">Start at the gold dot. Trace, pull, then swipe up.</p>
@@ -73,10 +77,37 @@
         <form method="dialog"><button aria-label="Close" value="close">Close</button></form>
       </div>
       <section id="map-content" hidden>
-        <p id="map-tip"></p>
-        <canvas id="map-canvas" width="360" height="420" aria-label="Overhead hole map. Tap a target to aim."></canvas>
-        <div class="map-legend"><span>● Ball</span><span>● Pin</span><span>● Water</span><span>● Bunker</span></div>
-        <button id="aim-at-pin" type="button">Aim at the pin</button>
+        <div class="chart-layout">
+          <div class="chart-field">
+            <div class="chart-readout">
+              <span>To pin <strong id="map-pin"></strong></span>
+              <span id="map-target-wrap">Aim point <strong id="map-target"></strong></span>
+            </div>
+            <canvas id="map-canvas" aria-label="Overhead hole map. Tap a target to update your aim."></canvas>
+            <div class="map-legend" aria-label="Map legend">
+              <span class="key-ball">Ball</span><span class="key-pin">Pin</span>
+              <span class="key-water">Water</span><span class="key-sand">Bunker</span>
+              <span class="key-stock" data-plan>Plain</span><span class="key-snap" data-plan>Snap</span>
+            </div>
+            <p id="map-hazards" class="chart-hazards" data-plan></p>
+          </div>
+          <aside class="chart-planner" id="map-planner" aria-labelledby="map-club-name">
+            <p class="eyebrow">Shot planner</p>
+            <div class="range-heading"><strong id="map-club-name"></strong><span id="map-metric"></span></div>
+            <div id="map-clubs" class="chart-clubs" aria-label="Choose a club"></div>
+            <table class="chart-range" aria-label="Estimated distance by swing power">
+              <thead><tr id="map-powers"><th scope="col">Power</th></tr></thead>
+              <tbody id="map-ranges"></tbody>
+            </table>
+            <p id="map-landing" class="chart-hazards" data-plan></p>
+            <p class="panel-note">Estimates from this lie. Spells and strike timing can change distance.</p>
+          </aside>
+          <p id="map-tip" class="panel-note"></p>
+        </div>
+        <div class="chart-actions">
+          <button id="aim-at-pin" type="button">Aim at pin</button>
+          <form method="dialog"><button id="map-return" value="close">Back to shot</button></form>
+        </div>
       </section>
       <section id="card-content" hidden>
         <table>

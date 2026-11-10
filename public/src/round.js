@@ -63,6 +63,7 @@ export class Round {
     const dx = target.x - this.lie.x;
     const dz = target.z - this.lie.z;
     if (Math.hypot(dx, dz) < .001) return false;
+    this.aimTarget = { ...target };
     this.aim = Math.atan2(dz, dx);
     this.forward = { x: Math.cos(this.aim), z: Math.sin(this.aim) };
     return true;
