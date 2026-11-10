@@ -13,23 +13,21 @@
   <main id="practice">
     <canvas id="tee" aria-label="Practice tee. Drag down, swipe up and lift, then tap just before the club reaches the ball." aria-describedby="prompt"></canvas>
     <header class="masthead">
-      <div>
+      <div class="brand">
         <p class="eyebrow"><span aria-hidden="true">✦</span> Wizard golf</p>
         <h1>Dangolf</h1>
       </div>
-    </header>
-    <section class="controls" aria-label="Swing feedback">
-      <div class="instructions">
-        <p class="eyebrow" id="phase" role="status">Practice tee</p>
-        <p id="prompt">Pull down, then swipe up and lift.</p>
-      </div>
       <button id="reset" type="button"><span aria-hidden="true">↺</span> Reset</button>
-      <dl class="stats">
+      <dl class="stats" aria-label="Shot stats">
         <div><dt>Load</dt><dd id="load">—</dd></div>
         <div><dt>Carry</dt><dd id="carry">—</dd></div>
         <div><dt>Total</dt><dd id="distance">—</dd></div>
       </dl>
-    </section>
+      <div class="instructions">
+        <p class="eyebrow" id="phase" role="status">Practice tee</p>
+        <p id="prompt">Pull down, then swipe up and lift.</p>
+      </div>
+    </header>
   </main>
 </body>
 </html>

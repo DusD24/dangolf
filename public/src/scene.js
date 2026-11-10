@@ -1,4 +1,4 @@
-import { BALL_RADIUS, TEE_X } from './practice.js';
+import { BALL_RADIUS, METERS_PER_YARD, TEE_X } from './practice.js';
 import { createTeeView } from './view.js';
 
 const TAU = Math.PI * 2;
@@ -66,7 +66,7 @@ function landscape(ctx, width, height, horizon) {
     ctx.fill();
   }
 
-  const ground = horizon + height * .025;
+  const ground = horizon;
   ctx.save();
   ctx.translate(0, ground);
   ctx.fillStyle = gradient(ctx, '#435943', '#1b392e', height - ground);
@@ -75,11 +75,11 @@ function landscape(ctx, width, height, horizon) {
 }
 
 function rangeWidth(depth) {
-  return 1.55 + 2.25 * (1 - Math.exp(-Math.max(0, depth) / 9));
+  return 1.55 + 14 * (1 - Math.exp(-Math.max(0, depth) / 37));
 }
 
 function fairway(ctx, point) {
-  const stripes = [-3.45, -1.1, 1.6, 4.3, 7.5, 11, 16, 23, 32, 45, 60, 78];
+  const stripes = [-3.45, -1.1, 1.6, 4.3, 8, 15, 28, 50, 80, 120, 175, 240, 350 * METERS_PER_YARD];
   for (let index = stripes.length - 1; index > 0; index--) {
     const near = stripes[index - 1];
     const far = stripes[index];
@@ -99,11 +99,12 @@ function fairway(ctx, point) {
     ctx.fill();
   }
 
-  for (const depth of [5, 10, 15]) {
+  for (const yards of [50, 100, 150, 200, 250, 300]) {
+    const depth = TEE_X + yards * METERS_PER_YARD;
     for (const side of [-1, 1]) {
       const z = side * rangeWidth(depth) * .94;
       const ground = point(depth, 0, z);
-      const top = point(depth, .22, z);
+      const top = point(depth, 0.035 * depth, z);
       ctx.strokeStyle = '#e8d8b0a0';
       ctx.lineWidth = Math.max(1, top.scale * .023);
       ctx.beginPath();
@@ -113,19 +114,23 @@ function fairway(ctx, point) {
     }
   }
 
-  const target = point(24, 0, 0);
-  const flag = point(24, .91, 0);
-  ellipse(ctx, target.x, target.y, target.scale * .50, target.scale * .13, '#bac18860');
+  const targetDepth = TEE_X + 250 * METERS_PER_YARD;
+  const target = point(targetDepth, 0, 0);
+  const flag = point(targetDepth, 7, 0);
+  ellipse(ctx, target.x, target.y, target.scale * 5, target.scale * .35, '#bac188a0');
   ctx.beginPath();
   ctx.moveTo(target.x, target.y);
   ctx.lineTo(flag.x, flag.y);
-  ctx.lineTo(flag.x + flag.scale * .49, flag.y + flag.scale * .10);
-  ctx.lineTo(flag.x, flag.y + flag.scale * .23);
+  ctx.lineTo(flag.x + flag.scale * 3, flag.y + flag.scale * .75);
+  ctx.lineTo(flag.x, flag.y + flag.scale * 1.55);
   ctx.strokeStyle = '#f2dbad';
   ctx.lineWidth = 1.4;
   ctx.fillStyle = '#e7b16c';
   ctx.stroke();
   ctx.fill();
+  ctx.font = '600 10px system-ui, sans-serif';
+  ctx.fillStyle = '#f2dbad';
+  ctx.fillText('250 yd', flag.x + flag.scale * 4.2, flag.y + 4);
 }
 
 function grass(ctx, point, width, height, horizon) {

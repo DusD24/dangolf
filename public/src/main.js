@@ -1,4 +1,4 @@
-import { BALL_RADIUS, Practice, STEP } from './practice.js';
+import { BALL_RADIUS, METERS_PER_YARD, Practice, STEP } from './practice.js';
 import { drawScene } from './scene.js';
 
 const canvas = document.querySelector('#tee');
@@ -107,6 +107,10 @@ function show(node, text) {
   if (node.textContent !== text) node.textContent = text;
 }
 
+function formatYards(meters) {
+  return Math.round(meters / METERS_PER_YARD) + ' yd';
+}
+
 function updateFeedback() {
   let title = 'Practice tee';
   let hint = 'Pull down, then swipe up and lift.';
@@ -139,8 +143,8 @@ function updateFeedback() {
   show(phase, title);
   show(prompt, hint);
   show(load, practice.phase === 'ready' ? '—' : Math.round(practice.charge * 100) + '%');
-  show(carry, practice.carry === null ? '—' : practice.carry.toFixed(1) + ' m');
-  show(distance, practice.impact ? practice.distance.toFixed(1) + ' m' : '—');
+  show(carry, practice.carry === null ? '—' : formatYards(practice.carry));
+  show(distance, practice.impact ? formatYards(practice.distance) : '—');
 }
 
 function frame() {

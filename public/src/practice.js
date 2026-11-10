@@ -1,4 +1,5 @@
 export const STEP = 1 / 120;
+export const METERS_PER_YARD = 0.9144;
 export const BALL_RADIUS = 0.043;
 export const TEE_X = 0.20;
 const CLUB_RADIUS = 0.044;
@@ -7,6 +8,10 @@ const MAX_PULL = 0.45;
 const MIN_PULL = 0.055;
 const SNAP_CUE_START = 0.068;
 const SNAP_CUE_END = 0.034;
+const DRIVER_LEVERAGE = 4.7;
+const TURF_BOUNCE = 0.12;
+const TURF_SPEED_RETENTION = 0.47;
+const ROLL_DECELERATION = 8.5;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const smooth = value => value * value * (3 - 2 * value);
@@ -192,9 +197,10 @@ export class Practice {
     const loft = 0.055 + 0.12 * this.charge + 0.22 * snapPulse;
     const heading = this.steer * 0.88;
     const transfer = 0.90 - 0.17 * Math.abs(this.steer);
-    const horizontal = speed * transfer * Math.cos(loft);
+    const launchSpeed = speed * transfer * DRIVER_LEVERAGE;
+    const horizontal = launchSpeed * Math.cos(loft);
     this.ball.vx = horizontal * Math.cos(heading);
-    this.ball.vy = speed * transfer * Math.sin(loft);
+    this.ball.vy = launchSpeed * Math.sin(loft);
     this.ball.vz = horizontal * Math.sin(heading);
     this.impact = { speed, launchY: this.ball.vy, at: this.elapsed };
   }
@@ -211,14 +217,14 @@ export class Practice {
       if (ball.y > BALL_RADIUS) return;
       this.carry ??= Math.hypot(ball.x - TEE_X, ball.z);
       ball.y = BALL_RADIUS;
-      ball.vy = ball.vy < -0.60 ? -0.31 * ball.vy : 0;
-      ball.vx *= 0.79;
-      ball.vz *= 0.79;
+      ball.vy = ball.vy < -0.60 ? -TURF_BOUNCE * ball.vy : 0;
+      ball.vx *= TURF_SPEED_RETENTION;
+      ball.vz *= TURF_SPEED_RETENTION;
       return;
     }
 
     const speed = Math.hypot(ball.vx, ball.vz);
-    const roll = Math.max(0, 1 - 1.65 * STEP / speed);
+    const roll = Math.max(0, 1 - ROLL_DECELERATION * STEP / speed);
     ball.vx *= roll;
     ball.vz *= roll;
   }

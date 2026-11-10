@@ -172,3 +172,21 @@ test('a pull past the old power cap still loads more power', () => {
   assert.ok(practice.releaseStroke(0.5, 0.2));
   assert.ok(practice.charge >= 0.99);
 });
+
+test('a full straight clean snap carries driver distance before rolling out', () => {
+  const plain = new Practice();
+  const clean = new Practice();
+  startSwing(plain, 0.45);
+  startSwing(clean, 0.45);
+  simulate(clean, 38 * STEP);
+  assert.ok(clean.snapCue);
+  assert.ok(clean.snap());
+
+  simulate(plain, 10);
+  simulate(clean, 10);
+  const carryYards = clean.carry / 0.9144;
+  const totalYards = clean.distance / 0.9144;
+  assert.ok(carryYards >= 235 && carryYards <= 265, 'Carry was ' + carryYards + ' yd');
+  assert.ok(totalYards > carryYards && totalYards < carryYards + 40, 'Total was ' + totalYards + ' yd');
+  assert.ok(plain.carry < clean.carry * 0.55);
+});
