@@ -46,6 +46,7 @@ let pullStarted = false;
 let unrecognized = false;
 let soundedShot = false;
 let soundedSwing = false;
+let soundedCup = false;
 let guideLayout = null;
 let lastFrame = performance.now();
 let accumulator = 0;
@@ -104,6 +105,7 @@ function reset() {
   unrecognized = false;
   soundedShot = false;
   soundedSwing = false;
+  soundedCup = false;
   accumulator = 0;
   updateFeedback();
   updateCourse();
@@ -413,6 +415,10 @@ function frame() {
       audio.play(cue);
       soundedShot = true;
     }
+  }
+  if (!soundedCup && round?.status === 'holed') {
+    audio.play({ base: 'cup' });
+    soundedCup = true;
   }
   const { ball } = practice;
   const lastSample = flight.at(-1);

@@ -79,6 +79,16 @@ function baseSound(context, out, at, base) {
     noise(context, out, at, 1640, 790, .031, .18);
     return;
   }
+  if (base === 'cup') {
+    // Three short rebounds, ending in the hollow knock at the bottom of the cup.
+    noise(context, out, at + .024, 3100, 1500, .039, .34, { q: 1.25 });
+    tone(context, out, at + .026, 1020, 710, .073, .22, 'triangle');
+    noise(context, out, at + .061, 2450, 870, .041, .28);
+    tone(context, out, at + .064, 690, 465, .080, .20);
+    noise(context, out, at + .102, 1150, 380, .054, .23);
+    tone(context, out, at + .104, 338, 245, .13, .27, 'triangle');
+    return;
+  }
   if (base === 'whiff') {
     noise(context, out, at, 480, 1950, .145, .55, { attack: .025, q: 1.1 });
     noise(context, out, at + .045, 1400, 430, .17, .22, { attack: .013 });
