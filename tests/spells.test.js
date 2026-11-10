@@ -70,3 +70,22 @@ test('draw pace and both transition holds independently reduce purity', () => {
     assert.ok(result.spell.purity < 0.96);
   }
 });
+
+test('a loose blade loop flows into the pull without stopping on the gold dot', () => {
+  const blade = [[0, 0], [-.028, -.17], [-.17, -.37], [-.251, -.54], [-.20, -.73],
+    [.018, -.96], [.188, -.77], [.27, -.55], [.143, -.34], [.035, -.17], [.004, -.025]];
+  for (const mode of ['guided', 'hard']) {
+    const points = stroke(blade);
+    const result = analyzeStroke(points, mode, 'sword');
+    assert.equal(result.spell?.id, 'sword');
+    assert.ok(result.spell.purity >= .90);
+    assert.equal(result.swing[0], points[blade.length - 1]);
+  }
+});
+
+test('an up-and-down flick does not cast the blade loop', () => {
+  const flick = [[0, 0], [-.03, -.3], [-.025, -.68], [0, -1], [.02, -.65], [.04, -.31], [0, 0]];
+  for (const mode of ['guided', 'hard']) {
+    assert.equal(analyzeStroke(stroke(flick), mode, 'sword').spell, null);
+  }
+});

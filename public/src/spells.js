@@ -23,15 +23,14 @@ for (let point = 1; point < 5; point++) {
 }
 star.push([0, 0]);
 
+// Taper back to the start so the second edge leads into the vertical pull.
+const sword = [[0, 0], [-.025, -.16], [-.18, -.34], [-.30, -.55], [-.23, -.74], [0, -1],
+  [.23, -.74], [.30, -.55], [.18, -.34], [.025, -.16], [0, 0]];
+
 export const RUNES = [
   { id: 'crescent-left', name: 'Crescent', type: 'crescent', direction: -1, pace: 760, path: crescent(-1) },
   { id: 'crescent-right', name: 'Crescent', type: 'crescent', direction: 1, pace: 760, path: crescent(1) },
-  {
-    id: 'sword', name: 'Sword', type: 'sword', pace: 1200,
-    path: [[0, 0], [.10, 0], [.10, -.21], [.30, -.21], [.30, -.31], [.13, -.31],
-      [.12, -.78], [0, -1], [-.12, -.78], [-.13, -.31], [-.30, -.31], [-.30, -.21],
-      [-.10, -.21], [-.10, 0], [0, 0]],
-  },
+  { id: 'sword', name: 'Sword', type: 'sword', pace: 1200, path: sword },
   { id: 'star', name: 'Star', type: 'star', pace: 1050, path: star },
 ];
 
