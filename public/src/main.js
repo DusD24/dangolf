@@ -191,7 +191,7 @@ function spellResult() {
 
 function updateFeedback() {
   let title = 'Practice tee';
-  let hint = mode.value === 'guided' ? 'Start at the gold dot. Trace, pull, then swipe up.' : 'Start at the rune’s bottom point. Draw, pull, then swipe up.';
+  let hint = mode.value === 'guided' ? 'Start at the gold dot. Trace, pull, then swipe up.' : 'Start at the gold dot. Draw, pull, then swipe up.';
 
   if (practice.phase === 'drawing') {
     title = pullStarted ? 'Loading the swing' : 'Drawing the spell';
@@ -242,11 +242,12 @@ function frame() {
       (!lastSample || practice.elapsed - lastSample.at >= 1 / 60)) {
     flight.push({ x: ball.x, y: ball.y, z: ball.z, at: practice.elapsed });
   }
-  const guided = mode.value === 'guided' && (practice.phase === 'ready' || practice.phase === 'drawing');
-  const rune = guided ? RUNES.find(item => item.id === guideSelect.value) : null;
-  const guide = rune ? { ...guideLayout, path: rune.path, channelOnly: pullStarted } : null;
+  const drawing = practice.phase === 'drawing';
+  const showingStart = practice.phase === 'ready' || drawing;
+  const rune = showingStart && mode.value === 'guided' ? RUNES.find(item => item.id === guideSelect.value) : null;
+  const guide = showingStart ? { ...guideLayout, path: rune?.path, channelOnly: pullStarted } : null;
   const shortSide = Math.min(width, height);
-  const trace = guided ? points.map(point => ({ x: point.x * shortSide, y: point.y * shortSide })) : [];
+  const trace = drawing ? points.map(point => ({ x: point.x * shortSide, y: point.y * shortSide })) : [];
   drawScene(ctx, width, height, practice, trace, flight, guide);
   updateFeedback();
   requestAnimationFrame(frame);

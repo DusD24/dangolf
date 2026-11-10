@@ -6,7 +6,7 @@ A one-thumb wizard golf prototype. The practice tee runs in a phone or desktop b
 
 Run `npm start` and open [the practice tee](http://127.0.0.1:4173/). The server uses Python 3 and the game has no browser dependencies.
 
-- In **Guided**, start at the gold dot and trace the selected rune back to the dot. **Hard** leaves the screen clear and rewards accurate spells with stronger effects.
+- Start at the gold dot and draw the rune back to it. **Guided** shows the selected rune and swing channel. **Hard** shows the dot and your own stroke, and rewards accurate spells with stronger effects.
 - In one motion, **pull down** to load, **swipe straight back up**, then **lift** to send it. You can also start with a plain pull and return.
 - **Tap just before contact** for a snap bonus. Watch for the club-head glint.
 - Tap **Reset** or press **R** for another ball.

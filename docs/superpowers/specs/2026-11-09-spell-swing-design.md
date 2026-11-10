@@ -42,7 +42,7 @@ A high-purity, full-load rune release should feel like a driver even before the 
 
 **Guided** is the starting mode. The player picks a rune and sees its path and the vertical swing channel underneath. The selected rune is the match target, and the crescent guide can face either direction. Guides clear on release so the shot remains visible. Geometry and rhythm still matter. Start with 60% of the Hard spell effect at the same purity, so a perfect Guided star reaches 115% power.
 
-**Hard** starts from a clear screen and recognizes the drawn rune across the starter catalog. It uses the full effect at a given purity, with the five-point star reaching 125%. Both modes show the result in the existing top readout area and keep the tee clear. Reset keeps the chosen mode and guide and clears the last shot.
+**Hard** shows a starting dot and the player's live stroke. The player draws from memory, and the game recognizes the rune across the starter catalog. Hard uses the full effect at a given purity, with the five-point star reaching 125%. Both modes show the result in the existing top readout area and keep the tee clear. Reset keeps the chosen mode and guide and clears the last shot.
 
 ## Shot sounds
 

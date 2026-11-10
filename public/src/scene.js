@@ -264,7 +264,6 @@ function drawGuide(ctx, guide) {
     ctx.lineWidth = 2;
     ctx.stroke();
   }
-  ellipse(ctx, x, y, 4, 4, '#f0d29b');
   ctx.restore();
 }
 
@@ -324,7 +323,10 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide) {
     sparks(ctx, point(-.07, .03, practice.steer * .10), practice.elapsed - practice.turfAt, tee.scale, '#c6ad73', 14);
   }
 
-  if (guide) drawGuide(ctx, guide);
+  if (guide) {
+    if (guide.path) drawGuide(ctx, guide);
+    ellipse(ctx, guide.x, guide.y, 4, 4, '#f0d29b');
+  }
 
   if (trace.length > 1) {
     ctx.beginPath();
