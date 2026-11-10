@@ -1,11 +1,9 @@
 import { CLUB_HEADS, CLUBS } from './clubs.js';
-import { TEE_X } from './practice.js';
+import { swingPose } from './swing-pose.js';
 
 const TAU = Math.PI * 2;
-const clamp = value => Math.max(0, Math.min(1, value));
 const shapes = Object.fromEntries(Object.entries({
-  leftBoot: 'M-26 -10 Q-18 -16 -7 -10 L-5 0 Q-16 5 -35 1 Q-38 -2 -26 -10Z',
-  rightBoot: 'M11 -11 Q21 -17 27 -8 Q41 -4 36 3 Q23 8 8 2Z',
+  boot: 'M-27 -9 Q-23 -15 -15 -11 L-12 -7 Q-1 -8 1 -2 Q3 3 -7 4 L-26 4 Q-30 2 -27 -9Z',
   hem: 'M-19 -70 Q-27 -48 -25 -28 L-37 -8 Q-16 6 25 -3 L38 -10 Q24 -34 19 -69Z',
   hemTrim: 'M-35 -12 Q-16 0 11 -6 Q27 -8 35 -13 L38 -9 Q25 1 3 1 Q-23 5 -37 -8Z',
   foldA: 'M-20 -65 Q-13 -39 -26 -11 Q-17 -9 -12 -10 Q0 -44 -10 -65Z',
@@ -16,6 +14,8 @@ const shapes = Object.fromEntries(Object.entries({
   belt: 'M-25 -69 Q-5 -60 23 -67 L25 -60 Q1 -52 -24 -60Z',
   mantle: 'M-26 -111 Q-18 -124 2 -125 Q22 -125 29 -111 Q19 -91 -1 -91 Q-18 -93 -26 -111Z',
   mantleTrim: 'M-25 -113 Q-10 -96 1 -96 Q17 -97 27 -113 L29 -110 Q17 -91 1 -91 Q-15 -93 -26 -110Z',
+  backMantle: 'M-28 -110 Q-19 -124 2 -125 Q22 -125 29 -111 Q16 -109 1 -86 Q-17 -105 -28 -110Z',
+  backTrim: 'M-28 -111 Q-13 -106 1 -90 Q16 -110 29 -112 L29 -109 Q16 -105 1 -85 Q-16 -103 -28 -108Z',
   hair: 'M-23 -151 Q-16 -169 5 -165 Q23 -163 23 -144 L18 -123 Q8 -111 -10 -116 Q-25 -127 -23 -151Z',
   face: 'M12 -155 Q23 -156 24 -142 L33 -136 Q31 -132 24 -130 L22 -120 Q15 -117 11 -126Z',
   beard: 'M16 -132 Q23 -131 26 -134 Q23 -126 23 -121 Q27 -111 18 -94 L13 -103 Q9 -107 12 -119Z',
@@ -50,51 +50,36 @@ function oval(ctx, x, y, rx, ry, color) {
   ctx.fill();
 }
 
-function drawnArm(ctx, shoulder, grip, elbow, size, front) {
-  ctx.beginPath();
-  ctx.moveTo(shoulder.x, shoulder.y);
-  ctx.quadraticCurveTo(elbow.x, elbow.y, grip.x, grip.y);
+function drawSleeve(ctx, { shoulder, elbow, wrist }, size, front) {
+  const color = front
+    ? shade(ctx, shoulder.x, shoulder.y, wrist.x, wrist.y, '#8e78af', '#4d3b69')
+    : '#463a60';
   ctx.lineCap = 'round';
-  ctx.lineWidth = size * .174;
-  ctx.strokeStyle = '#201d32';
-  ctx.stroke();
-  ctx.lineWidth = size * .136;
-  ctx.strokeStyle = front ? shade(ctx, shoulder.x, shoulder.y, grip.x, grip.y, '#8b73ad', '#4a3d69') : '#3e355a';
-  ctx.stroke();
-}
-
-function clubPose(practice, profile) {
-  let angle = practice.angle;
-  let tip = { ...practice.club };
-  if (profile.head === 'putter') {
-    const forward = practice.impact ? Math.sin(Math.PI * clamp(practice.elapsed / .38)) * .23 : 0;
-    angle = forward - (practice.phase === 'drawing' ? practice.charge * .24 : 0);
-    tip = { x: TEE_X - .10 + angle, y: .067 + Math.abs(angle) * .10, z: 0 };
-  } else {
-    const arc = clamp((Math.abs(angle) - .32) / 1.12);
-    const turn = arc * arc * (3 - 2 * arc);
-    tip.y += turn * (angle < 0 ? .43 : .77);
-    tip.z += turn * (angle < 0 ? .30 : -.79);
+  const segments = [[shoulder, elbow, .16], [elbow, wrist, .11]];
+  for (const [start, end, width] of segments) {
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.lineWidth = size * width + 2;
+    ctx.strokeStyle = '#262139';
+    ctx.stroke();
+  }
+  for (const [start, end, width] of segments) {
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.lineWidth = size * width;
+    ctx.strokeStyle = color;
+    ctx.stroke();
   }
 
-  const lift = Math.abs(Math.sin(angle));
-  const grip = {
-    x: -.10 + .23 * Math.sin(angle + .25),
-    y: .84 + .43 * lift,
-    z: -.42 + .11 * Math.sin(angle),
-  };
-  const dx = grip.x - tip.x;
-  const dy = grip.y - tip.y;
-  const dz = grip.z - tip.z;
-  const length = Math.hypot(dx, dy, dz);
-  return {
-    angle, tip,
-    grip: {
-      x: tip.x + dx * profile.length / length,
-      y: tip.y + dy * profile.length / length,
-      z: tip.z + dz * profile.length / length,
-    },
-  };
+  const angle = Math.atan2(wrist.y - elbow.y, wrist.x - elbow.x);
+  ctx.save();
+  ctx.translate(wrist.x, wrist.y);
+  ctx.rotate(angle);
+  ctx.fillStyle = front ? '#cca374' : '#946e5a';
+  ctx.fillRect(-size * .072, -size * .061, size * .029, size * .122);
+  ctx.restore();
 }
 
 function drawStaff(ctx, grip, tip, profile, size, shining) {
@@ -108,7 +93,7 @@ function drawStaff(ctx, grip, tip, profile, size, shining) {
   const width = Math.max(2.4, size * .037);
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(-width * .7, 0);
+  ctx.moveTo(-Math.max(width * 2.6, size * .09), 0);
   ctx.lineTo(length, 0);
   ctx.lineWidth = width + 2;
   ctx.strokeStyle = '#241a2d';
@@ -164,54 +149,104 @@ function drawStaff(ctx, grip, tip, profile, size, shining) {
   ctx.restore();
 }
 
-export function drawWizard(ctx, point, practice) {
-  const profile = CLUBS[practice.clubType];
-  const pose = clubPose(practice, profile);
-  const foot = point(-.42, 0, -.78);
-  const grip = point(pose.grip.x, pose.grip.y, pose.grip.z);
-  const tip = point(pose.tip.x, pose.tip.y, pose.tip.z);
-  const size = foot.scale;
-  const back = clamp(-pose.angle / 1.7);
-  const finish = clamp((pose.angle - .36) / .98);
-  const lean = .05 + back * .21 - finish * .18;
-  const shift = (back * 10 - finish * 13) * size / 100;
-  const crouch = (5 + back * 8 - finish * 7) * size / 100;
-
-  oval(ctx, foot.x + size * .025, foot.y, size * .40, size * .086, '#101e2799');
+function drawBoot(ctx, heel, toe, size, near) {
   ctx.save();
-  ctx.translate(foot.x, foot.y);
-  ctx.scale(size / 100, size / 100);
+  ctx.translate(toe.x, toe.y);
+  const length = Math.hypot(toe.x - heel.x, toe.y - heel.y);
+  ctx.rotate(Math.atan2(toe.y - heel.y, toe.x - heel.x));
+  ctx.scale(length / 24, size / 110);
+  ctx.lineWidth = 1.7;
+  fill(ctx, 'boot', near ? '#483346' : '#322739', '#211c2e');
+  ctx.restore();
+}
+
+function drawLowerBody(ctx, point, pose, hip, size) {
+  const leadToe = point(.36, .025, -.57);
+  const trailToe = point(-.47, .025, -.89);
+  const leadHeel = point(.34, .055, -.83);
+  const trailHeel = point(-.50, .055 + pose.heel, -1.16);
+  const foot = point(-.12, 0, -.87);
+  oval(ctx, foot.x, foot.y, size * .42, size * .092, '#101e2780');
+
+  const flex = .04 + (pose.chest.z - pose.hip.z) * .35;
+  const leadKnee = point(.31, pose.hip.y * .55, -.83 + flex);
+  const trailKnee = point(-.43, (pose.hip.y + pose.heel) * .55, -1.10 + flex + pose.heel * .48);
+  for (const [heel, toe, knee, near] of [
+    [leadHeel, leadToe, leadKnee, false], [trailHeel, trailToe, trailKnee, true],
+  ]) {
+    ctx.beginPath();
+    ctx.moveTo(hip.x, hip.y);
+    ctx.lineTo(knee.x, knee.y);
+    ctx.lineTo(heel.x, heel.y);
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = size * .13;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = near ? '#332943' : '#29253b';
+    ctx.stroke();
+    drawBoot(ctx, heel, toe, size, near);
+  }
+
+  const hemX = (leadHeel.x + trailHeel.x) / 2 + size * .05;
+  const hemY = (leadHeel.y + trailHeel.y) / 2 - size * .10;
+  ctx.save();
+  ctx.translate(hip.x, hip.y);
+  ctx.rotate(Math.atan2(hip.x - hemX, hemY - hip.y));
+  ctx.scale(size / 100 * (.85 + .13 * Math.abs(Math.sin(pose.hipTurn))), (hemY - hip.y) / 64);
+  ctx.translate(0, 68);
   ctx.lineJoin = 'round';
   ctx.lineWidth = 1.6;
-  fill(ctx, 'leftBoot', '#272234', '#171625');
-  fill(ctx, 'rightBoot', '#3d2b3c', '#211d2e');
-  ctx.rotate(lean * .35);
   fill(ctx, 'hem', shade(ctx, -33, -50, 38, -15, '#60517d', '#292943'), '#24223b');
   fill(ctx, 'foldA', '#a486ad50');
   fill(ctx, 'foldB', '#201e3c70');
   fill(ctx, 'hemTrim', '#b8875c');
   ctx.restore();
+}
 
-  const farShoulder = { x: foot.x - size * .13 + shift, y: foot.y - size * 1.07 + crouch };
-  const shoulder = { x: foot.x + size * .14 + shift, y: foot.y - size * 1.03 + crouch };
-  drawnArm(ctx, farShoulder, grip, { x: farShoulder.x - size * .09, y: grip.y + size * .24 }, size, false);
-
+function drawTorso(ctx, hip, chest, size, shoulderTurn) {
   ctx.save();
-  ctx.translate(foot.x + shift, foot.y + crouch);
-  ctx.scale(size / 100, size / 100);
-  ctx.rotate(lean);
+  ctx.translate(hip.x, hip.y);
+  const rise = hip.y - chest.y;
+  const sway = chest.x - hip.x;
+  ctx.rotate(Math.atan2(sway, rise));
+  const facing = Math.sin(shoulderTurn);
+  ctx.scale(size / 100 * (.65 + .27 * Math.abs(facing)), Math.hypot(sway, rise) / 48);
+  ctx.translate(0, 64);
   ctx.lineJoin = 'round';
   ctx.lineWidth = 1.5;
   fill(ctx, 'cape', shade(ctx, -35, -98, 5, -34, '#665487', '#3b2f55'), '#302944');
   fill(ctx, 'capeTrim', '#b28a65a0');
   fill(ctx, 'coat', shade(ctx, -20, -113, 31, -64, '#776494', '#393257'), '#302747');
   fill(ctx, 'belt', '#35283d');
+  fill(ctx, 'backMantle', shade(ctx, -23, -120, 26, -95, '#574371', '#312740'), '#2c253c');
+  fill(ctx, 'backTrim', '#b58a63');
+  ctx.save();
+  // Move the front clasp around the body's edge as the shoulders open toward the target.
+  const front = Math.min(1, Math.max(0, .40 - facing));
+  ctx.globalAlpha = front;
+  ctx.translate(17 * (1 - front), 0);
+  ctx.scale(.65 + .35 * front, 1);
   oval(ctx, 9, -64, 4.7, 3.2, '#c99865');
   fill(ctx, 'mantle', shade(ctx, -23, -120, 26, -95, '#574371', '#312740'), '#2c253c');
   fill(ctx, 'mantleTrim', '#ca996b');
   oval(ctx, 2, -98, 4.2, 4, '#b27d52');
   oval(ctx, 2, -98, 2.5, 2.2, '#a8eee2');
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawHead(ctx, head, size, gaze) {
+  ctx.save();
+  ctx.translate(head.x, head.y);
+  ctx.rotate(.36 - gaze * .30);
+  ctx.scale(size / 123, size / 123);
+  ctx.translate(0, 141);
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 1.5;
   fill(ctx, 'hair', shade(ctx, -20, -154, 19, -119, '#e4d4db', '#8e809c'), '#61546f');
+  ctx.save();
+  const profile = Math.max(.06, Math.cos(gaze * 1.18));
+  ctx.translate(12 * (1 - profile), 0);
+  ctx.scale(profile, 1);
   fill(ctx, 'face', shade(ctx, 11, -152, 30, -127, '#e3b79a', '#996e6d'), '#744c60');
   fill(ctx, 'beard', shade(ctx, 14, -132, 23, -100, '#fff0dd', '#b6a7bb'), '#908397');
   ctx.strokeStyle = '#f6e6dcad';
@@ -222,17 +257,63 @@ export function drawWizard(ctx, point, practice) {
     ctx.quadraticCurveTo(17 + i * 1.8, -119, 15 + i * 1.5, -105 - i * 1.4);
   }
   ctx.stroke();
+  ctx.restore();
   fill(ctx, 'hat', shade(ctx, -25, -196, 25, -160, '#826ca4', '#3d345f'), '#302541');
   fill(ctx, 'hatLight', '#ad8bbd73');
   fill(ctx, 'hatBand', shade(ctx, -23, -164, 25, -163, '#d3a36c', '#76504f'), '#644657');
   fill(ctx, 'brim', shade(ctx, -38, -163, 38, -153, '#76618f', '#3e335d'), '#2c233e');
   ctx.restore();
+}
 
-  drawnArm(ctx, shoulder, grip, { x: shoulder.x + size * .22, y: grip.y + size * .20 }, size, true);
+function drawHand(ctx, { wrist, palm }, grip, tip, size, near) {
+  const shaftAngle = Math.atan2(tip.y - grip.y, tip.x - grip.x);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(wrist.x, wrist.y);
+  ctx.lineTo(palm.x, palm.y);
+  ctx.lineWidth = size * .058;
+  ctx.strokeStyle = near ? '#c2907b' : '#a87767';
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(palm.x, palm.y);
+  ctx.rotate(shaftAngle);
+  oval(ctx, 0, 0, size * .044, size * .039, '#3f2938');
+  oval(ctx, 0, -size * .004, size * .037, size * .033, near ? '#e7b797' : '#c89178');
+  ctx.beginPath();
+  ctx.moveTo(-size * .025, -size * .016);
+  ctx.quadraticCurveTo(0, -size * .024, size * .022, -size * .012);
+  ctx.lineWidth = Math.max(.6, size * .009);
+  ctx.strokeStyle = near ? '#f5d5ad' : '#e0a987';
+  ctx.stroke();
+  ctx.restore();
+}
+
+export function drawWizard(ctx, point, practice) {
+  const profile = CLUBS[practice.clubType];
+  const pose = swingPose(practice, profile);
+  const project = ({ x, y, z }) => point(x, y, z);
+  const hip = project(pose.hip);
+  const chest = project(pose.chest);
+  const head = project(pose.head);
+  const grip = project(pose.grip);
+  const tip = project(pose.tip);
+  const size = hip.scale;
+  const arms = [pose.lead, pose.trail].sort((a, b) => b.shoulder.x - a.shoulder.x)
+    .map(({ shoulder, elbow, wrist, palm }) => ({
+      shoulder: project(shoulder), elbow: project(elbow), wrist: project(wrist), palm: project(palm),
+    }));
+
+  drawLowerBody(ctx, point, pose, hip, size);
+  drawSleeve(ctx, arms[0], size, false);
+  drawTorso(ctx, hip, chest, size, pose.shoulderTurn);
+  drawSleeve(ctx, arms[1], size, true);
   const age = practice.castAt === null ? Infinity : practice.elapsed - practice.castAt;
   drawStaff(ctx, grip, tip, profile, size, practice.snapCue || age < .16);
-  oval(ctx, grip.x, grip.y, size * .050, size * .043, '#deb098');
-  oval(ctx, grip.x + size * .015, grip.y - size * .014, size * .028, size * .022, '#efd0ac');
+  drawHand(ctx, arms[0], grip, tip, size, false);
+  drawHand(ctx, arms[1], grip, tip, size, true);
+  drawHead(ctx, head, size, pose.gaze);
+
   if (practice.snapCue) {
     ctx.beginPath();
     ctx.arc(tip.x, tip.y, size * .105, 0, TAU);
