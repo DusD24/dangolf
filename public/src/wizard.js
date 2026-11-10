@@ -299,19 +299,24 @@ export function drawWizard(ctx, point, practice) {
   const grip = project(pose.grip);
   const tip = project(pose.tip);
   const size = hip.scale;
-  const arms = [pose.lead, pose.trail].sort((a, b) => b.shoulder.x - a.shoulder.x)
-    .map(({ shoulder, elbow, wrist, palm }) => ({
-      shoulder: project(shoulder), elbow: project(elbow), wrist: project(wrist), palm: project(palm),
-    }));
+  const [far, near] = [pose.lead, pose.trail].sort((a, b) => b.shoulder.x - a.shoulder.x);
+  const paintArm = arm => ({
+    shoulder: project(arm.shoulder), elbow: project(arm.elbow),
+    wrist: project(arm.wrist), palm: project(arm.palm),
+  });
+  const farArm = paintArm(far);
+  const nearArm = paintArm(near);
+  const crossesChest = far.elbow.x < pose.chest.x && pose.shoulderTurn < 0;
 
   drawLowerBody(ctx, point, pose, hip, size);
-  drawSleeve(ctx, arms[0], size, false);
+  if (!crossesChest) drawSleeve(ctx, farArm, size, far === pose.trail);
   drawTorso(ctx, hip, chest, size, pose.shoulderTurn);
-  drawSleeve(ctx, arms[1], size, true);
+  if (crossesChest) drawSleeve(ctx, farArm, size, far === pose.trail);
+  drawSleeve(ctx, nearArm, size, near === pose.trail);
   const age = practice.castAt === null ? Infinity : practice.elapsed - practice.castAt;
   drawStaff(ctx, grip, tip, profile, size, practice.snapCue || age < .16);
-  drawHand(ctx, arms[0], grip, tip, size, false);
-  drawHand(ctx, arms[1], grip, tip, size, true);
+  drawHand(ctx, farArm, grip, tip, size, far === pose.trail);
+  drawHand(ctx, nearArm, grip, tip, size, near === pose.trail);
   drawHead(ctx, head, size, pose.gaze);
 
   if (practice.snapCue) {

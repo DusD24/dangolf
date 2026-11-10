@@ -4,6 +4,7 @@ export const STEP = 1 / 120;
 export const METERS_PER_YARD = 0.9144;
 export const BALL_RADIUS = 0.043;
 export const TEE_X = 0.20;
+export const SWING_PASS_ANGLE = .13;
 const CLUB_RADIUS = 0.044;
 const TETHER_LENGTH = 0.95;
 export const FULL_PULL = 0.45;
@@ -66,6 +67,7 @@ export class Practice {
     this.angularSpeed = 0;
     this.staffAngle = 0.32;
     this.startAngle = 0;
+    this.clubPassedAt = null;
     this.castAt = null;
     this.castLabel = '';
     this.spell = null;
@@ -150,7 +152,7 @@ export class Practice {
   }
 
   get approachTime() {
-    return (0.13 - this.angle) / Math.max(0.01, this.angularSpeed);
+    return (SWING_PASS_ANGLE - this.angle) / Math.max(0.01, this.angularSpeed);
   }
 
   snap() {
@@ -211,6 +213,7 @@ export class Practice {
     const drive = 88 * (this.staffAngle - this.angle) - 10 * this.angularSpeed;
     this.angularSpeed += (drive + 225 * snapPulse) * STEP;
     this.angle += this.angularSpeed * STEP;
+    if (this.angle >= SWING_PASS_ANGLE) this.clubPassedAt ??= this.elapsed;
     const previous = this.club;
     const next = this.clubPose();
 
