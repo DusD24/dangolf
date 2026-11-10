@@ -1,7 +1,7 @@
 import { TEE_X } from './practice.js';
 
 export function playTitleOnStart() {
-  const announcer = new Audio(new URL('../audio/dang-golf.mp3', import.meta.url));
+  const announcer = new Audio(new URL('../audio/dangolf.mp3', import.meta.url));
   announcer.preload = 'auto';
   announcer.volume = .85;
   const gestures = ['pointerup', 'click', 'keydown'];
