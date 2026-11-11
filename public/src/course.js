@@ -153,7 +153,7 @@ export function surfaceAt(hole, ball) {
   for (const hazard of hole.hazards) {
     if (inside(hazard, ball)) return hazard.type;
   }
-  if (inside(hole.green, ball)) return 'green';
+  if ((hole.greens ?? [hole.green]).some(green => inside(green, ball))) return 'green';
 
   if (x <= hole.fairway[0].x || x > hole.fairway.at(-1).x) return 'rough';
   const edge = fairwayAt(hole.fairway, x);

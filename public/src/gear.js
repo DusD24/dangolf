@@ -119,10 +119,10 @@ export function createGear({ equip, changeSpell }) {
     for (const [option, { button, status }] of puttRunes) {
       const cost = spellManaCost(option.type);
       const valid = option.type === puttingLie;
-      const short = Math.max(0, cost - shownMana);
+      const short = shownMana === null ? 0 : Math.max(0, cost - shownMana);
       button.disabled = !valid || short > 0;
       button.setAttribute('aria-pressed', String(puttRune === option));
-      status.textContent = cost + ' mana · ' + (valid ? short > 0 ? 'Need ' + short + ' more' : 'Ready' :
+      status.textContent = (shownMana === null ? 'Unlimited mana · ' : cost + ' mana · ') + (valid ? short > 0 ? 'Need ' + short + ' more' : 'Ready' :
         option.type === 'royal-flush' ? 'On the green only' : 'From the fringe only');
     }
   }

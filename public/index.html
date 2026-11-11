@@ -21,7 +21,7 @@
         <div><dt>Load</dt><dd id="load">—</dd></div>
         <div><dt>Carry</dt><dd id="carry">—</dd></div>
         <div><dt>Total</dt><dd id="distance">—</dd></div>
-        <div id="pin-stat" hidden><dt>To pin</dt><dd id="to-pin">—</dd></div>
+        <div id="pin-stat" hidden><dt id="pin-label">To pin</dt><dd id="to-pin">—</dd></div>
       </dl>
       <div class="course-summary">
         <p id="hole-info" class="eyebrow" hidden></p>
@@ -30,10 +30,14 @@
       <figure class="mini-course" id="mini-course" hidden>
         <canvas id="mini-map" aria-label="Live overhead view of the ball, flag and hazards"></canvas>
         <figcaption id="mini-caption">Hole map</figcaption>
+        <button id="narration-mute" type="button" aria-label="Mute narrator" aria-pressed="false" title="Mute god voice">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3Z"/><path id="voice-waves" d="M16 8q4 4 0 8m3-11q7 7 0 14"/><path id="voice-silent" d="m16 9 5 6m0-6-5 6" hidden/></svg>
+        </button>
       </figure>
       <div class="instructions">
         <p class="eyebrow" id="phase" role="status">Practice tee</p>
         <p id="prompt">Start at the gold dot. Trace, pull, then swipe up.</p>
+        <p id="range-last" hidden></p>
       </div>
     </header>
     <footer class="thumb-controls" aria-label="Game controls">
@@ -93,6 +97,12 @@
       </div>
       <section id="map-content" hidden>
         <div class="chart-layout">
+          <section id="range-options" hidden aria-label="Practice setup">
+            <p class="eyebrow">Practice station</p>
+            <div class="range-stations" id="range-stations"></div>
+            <p class="eyebrow" id="range-target-label">Target greens</p>
+            <div class="range-targets" id="range-targets"></div>
+          </section>
           <div class="chart-field">
             <div class="chart-readout">
               <span>To pin <strong id="map-pin"></strong></span>

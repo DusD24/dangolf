@@ -140,11 +140,12 @@ export class ShotNarration {
 
     if (round?.status === 'holed') {
       const score = round.strokes - shot.hole.par;
-      this.birdies = score <= -1 ? this.birdies + 1 : 0;
-      if (round.strokes === 1) return reaction('ace', true);
+      if (!round.isPractice) this.birdies = score <= -1 ? this.birdies + 1 : 0;
+      if (!round.isPractice && round.strokes === 1) return reaction('ace', true);
       if (!putt) return reaction(atMost(shot.remaining, 30 * METERS_PER_YARD) ? 'chip-in' : 'hole-out', true);
       if (spell?.type === 'royal-flush' && spell.purity >= ROYAL_FLUSH_PURITY) return reaction('royal', true);
       if (!spell && atLeast(shot.remaining, 25 * FOOT)) return reaction('long-putt', true);
+      if (round.isPractice) return null;
       if (this.birdies === 3) return reaction('birdie-streak', true);
       if (score <= -3) return reaction('albatross', true);
       if (score === -2) return reaction('eagle', true);

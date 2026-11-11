@@ -269,6 +269,7 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
 .course-hud .stats dt { white-space: nowrap; }
 .course-hud .stats dd { white-space: nowrap; }
 .mini-course {
+  position: relative;
   grid-area: mini;
   align-self: start;
   width: clamp(86px, 24vw, 112px);
@@ -279,6 +280,26 @@ button:disabled, select:disabled { opacity: .55; cursor: default; }
   background: #18242cec;
   box-shadow: 0 3px 15px #10172488;
 }
+#narration-mute {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 40px;
+  min-height: 40px;
+  padding: 9px;
+  border-radius: 50%;
+  color: #ffe0a5;
+}
+#narration-mute svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#narration-mute[aria-pressed="true"] { color: #b3b5bf; border-color: #777e85; }
+#range-last { color: #baf2db; font-size: .68rem; line-height: 1.4; margin-top: 4px; max-width: 650px; }
+.range-stations, .range-targets { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 10px; }
+.range-stations button, .range-targets button { flex: 1; min-width: 48px; padding-inline: 7px; font-size: .75rem; }
+.range-stations button[aria-pressed="true"], .range-targets button[aria-pressed="true"] { color: #ffedbc; border-color: #e6bd80; background: linear-gradient(145deg, #695047, #293a43); }
+#range-options { grid-column: 1 / -1; padding: 8px 10px 0; border: 1px solid var(--gold-line); border-radius: 8px 4px; background: #1c2834aa; }
+.range-hud .actions { gap: 4px; }
+.range-hud .actions button { font-size: .75rem; padding-inline: 7px; }
+.range-hud #hole-map::before { content: none; }
 #mini-map { display: block; width: 100%; height: clamp(78px, 15dvh, 108px); border-radius: 4px; }
 .mini-course figcaption {
   padding: 4px 0 2px;

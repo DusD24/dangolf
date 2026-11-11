@@ -18,6 +18,7 @@ class Voice extends EventTarget {
     this.paused = true;
     this.dispatchEvent(new Event('ended'));
   }
+  pause() { this.paused = true; }
 }
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -108,6 +109,23 @@ test('a failed clip releases the next queued voice instead of blocking narration
   narrator.say('chip-in', { delay: 0, shot: 1 });
   voice.dispatchEvent(new Event('error'));
   t.mock.timers.tick(350);
+  await flush();
+  assert.deepEqual(voice.played, ['damn-son.mp3', 'chip-in.mp3']);
+});
+
+test('muting stops speech, clears queued jokes, and unmuting accepts only new reactions', async t => {
+  const { voice, narrator } = setup(t);
+  narrator.say('damn-son', { delay: 0, shot: 1 });
+  await flush();
+  narrator.say('chunk-dwarf', { delay: 0, shot: 2 });
+  narrator.setMuted(true);
+  assert.equal(narrator.muted, true);
+  assert.equal(voice.paused, true);
+  assert.equal(voice.muted, true);
+  t.mock.timers.tick(5000);
+  narrator.say('ace', { delay: 0 });
+  narrator.setMuted(false);
+  narrator.say('chip-in', { delay: 0, shot: 3 });
   await flush();
   assert.deepEqual(voice.played, ['damn-son.mp3', 'chip-in.mp3']);
 });

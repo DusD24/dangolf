@@ -31,7 +31,7 @@ function makeButton(text, title, action) {
   return button;
 }
 
-export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
+export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell, selectRangeMode, selectRangeTarget }) {
   const get = id => document.getElementById(id);
   const mini = get('mini-course');
   const miniCanvas = get('mini-map');
@@ -41,6 +41,8 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
   const aimAtPin = get('aim-at-pin');
   const clubs = new Map();
   const powers = new Map();
+  const stations = new Map();
+  const targets = new Map();
   const planDetails = [...map.querySelectorAll('[data-plan]')];
   let round;
   let ball;
@@ -51,6 +53,15 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
   let screenToWorld = null;
   let previousKey = '';
   let previousAim = null;
+
+  for (const [id, label] of Object.entries({ driving: 'Tee', rough: 'Rough', sand: 'Sand', putting: 'Green', fringe: 'Fringe' })) {
+    const button = makeButton(label, 'Practice from ' + label.toLowerCase(), () => {
+      if (selectRangeMode(id)) renderPlanner();
+    });
+    button.dataset.rangeMode = id;
+    stations.set(id, button);
+    get('range-stations').append(button);
+  }
 
   for (const [id, club] of Object.entries(CLUBS)) {
     const button = makeButton(club.short, club.name, () => {
@@ -90,11 +101,12 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
     const selected = ranges.find(row => row.power === power);
     get('map-club-name').textContent = CLUBS[round.club].name;
     get('map-metric').textContent = (putter ? 'Roll · ft' : 'Carry · yd') + ' · ' +
-      (round.atTee ? 'Tee' : labels[round.surface]);
+      (!round.isPractice && round.atTee ? 'Tee' : labels[round.surface]);
     get('map-range-note').textContent = putter ? 'Plain roll from this aim, including slope. Marker shows where it would stop past the cup.' :
       'Spell uses ' + rune.name + ' at ' + Math.round(PREVIEW_PURITY * 100) + '% purity in ' +
       (mode === 'guided' ? 'Guided' : 'Hard') + '.';
-    get('map-mana-plan').textContent = putter ? puttManaPlan(round.mana, round.puttingRune) : manaPlan(round.mana);
+    get('map-mana-plan').textContent = round.isPractice ? 'Unlimited practice mana. Try every spell and repeat the same shot.' :
+      putter ? puttManaPlan(round.mana, round.puttingRune) : manaPlan(round.mana);
 
     for (const [id, button] of clubs) {
       button.setAttribute('aria-pressed', String(id === round.club));
@@ -130,6 +142,31 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
 
   function renderPlanner() {
     const putter = round.club === 'putter';
+    const training = Boolean(round.isPractice);
+    get('range-options').hidden = !training;
+    if (training) {
+      get('dialog-title').textContent = round.hole.name;
+      for (const [mode, button] of stations) {
+        button.setAttribute('aria-pressed', String(mode === round.mode));
+        button.disabled = round.status === 'playing';
+      }
+      if (!targets.size) {
+        for (const target of round.targets) {
+          const button = makeButton(target.label, 'Aim at ' + target.label + ' target', () => {
+            if (selectRangeTarget(target.id)) renderPlanner();
+          });
+          button.dataset.rangeTarget = target.id;
+          targets.set(target.id, button);
+          get('range-targets').append(button);
+        }
+      }
+      const short = round.mode === 'putting' || round.mode === 'fringe';
+      get('range-targets').hidden = get('range-target-label').hidden = short;
+      for (const [id, button] of targets) {
+        button.setAttribute('aria-pressed', String(id === round.selectedTarget.id));
+        button.disabled = round.status === 'playing';
+      }
+    }
     get('map-planner').hidden = !ready;
     estimates = ready ? renderRanges() : [];
     for (const detail of planDetails) detail.hidden = !ready;
@@ -138,6 +175,7 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
     map.querySelector('.key-spell').hidden = !ready || putter;
     map.querySelector('.key-spell-snap').hidden = !ready || putter;
     aimAtPin.hidden = !ready;
+    aimAtPin.textContent = training && !putter ? 'Aim at target' : 'Aim at pin';
     get('putt-aim').hidden = !ready || !putter;
     get('map-target-wrap').hidden = !ready;
     get('map-target').textContent = pinDistance(distance(round.lie, round.aimTarget), putter || round.surface === 'green');
@@ -177,7 +215,7 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
   return {
     open() {
       if (!round || dialog.open) return;
-      get('dialog-title').textContent = (round.index + 1) + ' · ' + round.hole.name;
+      get('dialog-title').textContent = round.isPractice ? round.hole.name : (round.index + 1) + ' · ' + round.hole.name;
       get('card-content').hidden = true;
       map.hidden = false;
       dialog.classList.add('chart-dialog');
@@ -201,10 +239,10 @@ export function createCourseMaps({ dialog, equipClub, setAim, selectedSpell }) {
       round = activeRound;
       ball = activeBall;
       ready = canPlan;
-      const caption = round.club === 'putter' && round.remaining < 33 ? 'Green read' :
+      const caption = round.club === 'putter' && round.remaining < 33 ? 'Green read' : round.isPractice ? round.selectedTarget.label + ' target' :
         ready && crossings.length ? crossingLabel(crossings[0]) : 'Hole map';
       if (miniCaption.textContent !== caption) miniCaption.textContent = caption;
-      const key = [round.index, round.status, round.club, round.aim, ball.x, ball.z,
+      const key = [round.index, round.mode, round.history?.length, round.status, round.club, round.aim, ball.x, ball.z,
         miniCanvas.clientWidth, miniCanvas.clientHeight].join('/');
       const moved = plannerChanged || key !== previousKey;
       if (moved) {

@@ -6,6 +6,7 @@ const COLORS = {
   water: '#31596b',
   sand: '#bc9b67',
   green: '#71935c',
+  rough: '#405a37',
   fairway: ['#4e7049', '#577951'],
 };
 
@@ -81,7 +82,7 @@ function terrain(ctx, hole, project, mowing = false) {
         COLORS.fairway[(i + band) % 2]);
     }
   }
-  patch(ctx, project(oval(hole.green)), COLORS.green);
+  for (const green of hole.greens ?? [hole.green]) patch(ctx, project(oval(green)), COLORS.green);
   for (const hazard of hole.hazards) {
     patch(ctx, project(oval(hazard)), COLORS[hazard.type]);
     if (hazard.type === 'water') {
@@ -154,6 +155,7 @@ const MAP_INK = {
   water: '#a5dfef',
   sand: '#e8c18b',
   trees: '#9fc184',
+  rough: '#95aa7b',
   aim: '#f6dcaa',
 };
 
@@ -303,6 +305,12 @@ export function drawHoleMap(canvas, round, ball, { compact = false, crossings = 
   for (const estimate of estimates) {
     const p = point(estimate.point);
     mapDot(ctx, p, 5, estimate.color);
+  }
+  if (round.isPractice) {
+    const shots = round.history.filter(item => item.mode === round.mode);
+    for (const shot of shots) {
+      mapDot(ctx, point(shot.point), compact ? 1.8 : 3, shot === shots.at(-1) ? '#ffdc94' : '#c0f0dc80');
+    }
   }
   mapDot(ctx, point(ball), compact ? 3 : 4, MAP_INK.ball);
 

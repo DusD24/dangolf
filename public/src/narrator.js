@@ -12,6 +12,9 @@ export function createNarrator(audio = new Audio()) {
   audio.preload = 'auto';
   audio.volume = .85;
   const events = globalThis.document;
+  let muted = false;
+  try { muted = globalThis.localStorage?.getItem('dangolf.narration-muted') === 'true'; } catch { /* Storage is optional. */ }
+  audio.muted = muted;
   const gestures = ['pointerup', 'click', 'keydown'];
   const lastPlayed = new Map();
   let queue = [];
@@ -51,7 +54,7 @@ export function createNarrator(audio = new Audio()) {
   }
 
   function pump() {
-    if (current || blocked) return;
+    if (muted || current || blocked) return;
     const now = Date.now();
     queue = queue.filter(entry => entry.expires > now);
     if (!queue.length) return;
@@ -87,6 +90,7 @@ export function createNarrator(audio = new Audio()) {
   audio.addEventListener('error', completed);
 
   function gesture() {
+    if (muted) return;
     blocked = false;
     if (current && audio.paused && !starting) start();
     else pump();
@@ -94,8 +98,24 @@ export function createNarrator(audio = new Audio()) {
   for (const event of gestures) events?.addEventListener(event, gesture, true);
 
   return {
+    get muted() { return muted; },
+    setMuted(value) {
+      muted = Boolean(value);
+      audio.muted = muted;
+      try { globalThis.localStorage?.setItem('dangolf.narration-muted', String(muted)); } catch { /* Storage is optional. */ }
+      if (muted) {
+        audio.pause();
+        queue = [];
+        current = null;
+        starting = false;
+        blocked = false;
+        clearTimeout(timer);
+        nextAt = Date.now();
+      }
+    },
     say(id, { important = FEATURED.has(id), delay = 300, shot = null } = {}) {
       voiceUrl(id);
+      if (muted) return;
       if (id === 'par' && ++parCount % 3 !== 0) return;
       const now = Date.now();
       if (!important && !OPENERS.has(id) &&

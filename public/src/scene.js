@@ -1,6 +1,7 @@
 import { BALL_RADIUS, METERS_PER_YARD, TEE_X } from './practice.js';
 import { surfaceAt } from './course.js';
 import { drawCourseGround } from './course-view.js';
+import { drawRangeDetails } from './range-view.js';
 import { createTeeView } from './view.js';
 import { POWER_MARKS } from './range-card.js';
 import { drawWizard } from './wizard.js';
@@ -294,6 +295,7 @@ export function drawScene(ctx, width, height, practice, trace, flight, guide, ro
   landscape(ctx, width, height, horizon);
   if (round) drawCourseGround(ctx, round, point);
   else fairway(ctx, point);
+  if (round?.isPractice) drawRangeDetails(ctx, round, point, width, height);
   grass(ctx, point, width, height, horizon, round);
 
   const tee = point(TEE_X, 0, 0);
