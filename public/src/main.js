@@ -1,4 +1,6 @@
-import { createShotAudio, playTitleOnStart, shotCue } from './audio.js';
+import { createShotAudio, shotCue } from './audio.js';
+import { createNarrator } from './narrator.js';
+import { ShotNarration } from './narration-triggers.js';
 import { COURSE, COURSE_NAME, surfaceAt } from './course.js';
 import { greenRead, pinDistance, puttAimTarget } from './course-map.js';
 import { createGear } from './gear.js';
@@ -33,7 +35,11 @@ const distance = document.querySelector('#distance');
 
 const practice = new Practice();
 const audio = createShotAudio();
-playTitleOnStart();
+const narrator = createNarrator();
+const shotNarration = new ShotNarration();
+narrator.say('title', { delay: 0 });
+let narrationActive = false;
+let narrationShot = 0;
 const flight = [];
 let round = null;
 let rangeClub = 'driver';
@@ -93,6 +99,16 @@ function advance(now) {
   while (accumulator >= STEP) {
     practice.step();
     round?.track(practice);
+    if (narrationActive) {
+      shotNarration.observe(round, practice);
+      const settled = round ? round.status !== 'playing' : practice.phase === 'result' &&
+        !practice.ball.vx && !practice.ball.vy && !practice.ball.vz;
+      if (settled) {
+        const line = shotNarration.finish(round, practice);
+        if (line) narrator.say(line.id, { important: line.important, shot: narrationShot });
+        narrationActive = false;
+      }
+    }
     accumulator -= STEP;
   }
 }
@@ -107,6 +123,9 @@ function clearInput() {
 }
 
 function reset() {
+  narrationActive = false;
+  shotNarration.cancelShot();
+  narrator.clearCommon();
   clearInput();
   practice.reset();
   flight.length = 0;
@@ -119,6 +138,13 @@ function reset() {
   updateFeedback();
   updateCourse();
   layoutGuide();
+}
+
+function narrateShot(attempted) {
+  shotNarration.beginShot(round, practice, attempted);
+  narrationActive = true;
+  narrationShot++;
+  if (practice.spell?.purity > .95) narrator.say('damn-son', { delay: 100, shot: narrationShot });
 }
 
 function sample(event) {
@@ -191,6 +217,7 @@ canvas.addEventListener('pointerup', event => {
       if (round) {
         if (!round.putt(practice, charge, spell, attempt)) {
           if (attempt) spellNotice = 'Casting requires ' + spellManaCost(attempt) + ' mana from the right lie.';
+          if (attempt && !round.canCast(attempt)) narrator.say('no-mana');
           round.putt(practice, charge);
         } else if (attempt && !spell) {
           spellNotice = 'Miscast · ' + spellManaCost(attempt) + ' mana spent.';
@@ -201,6 +228,9 @@ canvas.addEventListener('pointerup', event => {
         }
       } else {
         practice.putt(charge);
+      }
+      if (practice.impact?.putt && (!round || round.status === 'playing')) {
+        narrateShot(round?.attemptedSpell ?? false);
       }
     } else {
       practice.cancelStroke();
@@ -213,6 +243,7 @@ canvas.addEventListener('pointerup', event => {
       spell = null;
     } else if (result.attempted && round && !round.canCast()) {
       spellNotice = 'Casting requires ' + SPELL_MANA_COST + ' mana.';
+      narrator.say('no-mana');
       spell = null;
     } else {
       castAttempted = result.attempted;
@@ -221,7 +252,7 @@ canvas.addEventListener('pointerup', event => {
     unrecognized = launched && result.attempted && !result.spell && !spellNotice;
     if (unrecognized && round) spellNotice = 'Miscast · ' + SPELL_MANA_COST + ' mana spent.';
   }
-  if (launched) round?.startShot(castAttempted);
+  if (launched && (!round || round.startShot(castAttempted))) narrateShot(castAttempted);
   clearInput();
 });
 
@@ -259,15 +290,18 @@ function prepareCourseShot() {
 }
 
 function startRound() {
+  shotNarration.beginRound();
   round = new Round();
   round.prepare(practice);
   prepareCourseShot();
+  narrator.say('round-start', { delay: 700 });
 }
 
 playCourse.addEventListener('click', () => {
   if (round?.status === 'playing') return;
   if (round) {
     round = null;
+    shotNarration.beginRound();
     practice.configure(rangeClub);
     gear.setShotSpell(gear.swingRune.id);
     reset();
@@ -291,11 +325,30 @@ roundNext.addEventListener('click', () => {
   if (round.status === 'complete') {
     startRound();
   } else {
+    const previousHole = round.index;
     round.next(practice);
-    if (round.status === 'complete') openScorecard();
-    else prepareCourseShot();
+    if (round.status === 'complete') {
+      narrateRoundEnd();
+      openScorecard();
+    } else {
+      prepareCourseShot();
+      if (round.index !== previousHole && round.index === 9) narrator.say('back-nine');
+      if (round.index !== previousHole && round.index === 17) narrator.say('final-hole');
+    }
   }
 });
+
+function narrateRoundEnd() {
+  let best = null;
+  try {
+    const saved = localStorage.getItem('dangolf.moonfen-best');
+    const value = Number(saved);
+    if (saved !== null && Number.isInteger(value) && value >= round.holes.length) best = value;
+    if (best === null || round.total < best) localStorage.setItem('dangolf.moonfen-best', String(round.total));
+  } catch { /* Narration and the scorecard also work with storage disabled. */ }
+  const record = best !== null && round.total < best;
+  narrator.say(record ? 'personal-best' : round.toPar < 0 ? 'round-under' : round.toPar === 0 ? 'round-even' : 'round-over');
+}
 
 function openScorecard() {
   dialog.classList.remove('chart-dialog');
