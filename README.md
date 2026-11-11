@@ -2,6 +2,10 @@
 
 A one-thumb wizard golf prototype. The practice tee runs in a phone or desktop browser.
 
+## Play online
+
+Every push to `main` runs the tests and publishes `public/` to GitHub Pages at <https://dusd24.github.io/dangolf/>. Open that link on any phone, no Wi-Fi preview needed.
+
 ## Play Moonfen Links
 
 Choose **Play 18** at the practice tee. Moonfen Links plays to par 71 over 18 holes.
