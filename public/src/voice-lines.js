@@ -17,6 +17,12 @@ export const VOICE_LINES = {
   'chunk-later': 'Shall I fetch a shovel?',
   top: 'A little more underneath it.',
   'rough-top': 'A mighty three paces.',
+  'top-second-discussed': 'Underneath. We discussed this.',
+  'top-second-underside': 'The ball does have an underside.',
+  'top-second-mortal': 'A touch lower, mortal.',
+  'top-third-bowling': 'I gave you magic. You chose bowling.',
+  'top-third-putter': 'Shall I just fetch your putter?',
+  'top-third-sphere': 'A wizard. Defeated by a small sphere.',
   whiff: 'The ball remains unimpressed.',
   miscast: 'A bold interpretation.',
   redemption: 'Ah. Golf. There it is.',
@@ -54,6 +60,9 @@ export const VOICE_LINES = {
   'birdie-streak': 'You are becoming a problem.',
   'par-save': 'You have redeemed yourself.',
 };
+
+export const SECOND_TOP_LINES = ['top-second-discussed', 'top-second-underside', 'top-second-mortal'];
+export const THIRD_TOP_LINES = ['top-third-bowling', 'top-third-putter', 'top-third-sphere'];
 
 export function voiceUrl(id) {
   if (!Object.hasOwn(VOICE_LINES, id)) throw new Error('Unknown voice line ' + id);

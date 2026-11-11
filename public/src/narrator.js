@@ -1,6 +1,7 @@
-import { voiceUrl } from './voice-lines.js';
+import { SECOND_TOP_LINES, THIRD_TOP_LINES, voiceUrl } from './voice-lines.js';
 
-const FEATURED = new Set(['title', 'damn-son', 'chunk-dwarf', 'chunk-delving', 'ace', 'chip-in',
+const FEATURED = new Set([...SECOND_TOP_LINES, ...THIRD_TOP_LINES,
+  'title', 'damn-son', 'chunk-dwarf', 'chunk-delving', 'ace', 'chip-in',
   'hole-out', 'long-putt', 'royal', 'albatross', 'eagle', 'birdie-streak', 'par-save',
   'round-under', 'round-even', 'round-over', 'personal-best']);
 const OPENERS = new Set(['round-start', 'back-nine', 'final-hole']);

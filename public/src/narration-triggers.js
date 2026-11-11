@@ -1,6 +1,7 @@
 import { surfaceAt } from './course.js';
 import { ROYAL_FLUSH_PURITY } from './mana.js';
 import { BALL_RADIUS, METERS_PER_YARD } from './practice.js';
+import { SECOND_TOP_LINES, THIRD_TOP_LINES } from './voice-lines.js';
 
 const FOOT = .3048;
 // World-coordinate subtraction can put an exact yard/foot boundary a few ulps away.
@@ -44,13 +45,16 @@ function threadedGap(shot) {
     Math.abs(angle(a.heading - b.heading)) < .2 && a.clearance + b.clearance <= 24));
 }
 
-/** Pure shot-to-line classification; playback, random selection and cooldown live elsewhere. */
+/** Pure shot-to-line classification; playback and cooldown live elsewhere. */
 export class ShotNarration {
   constructor() { this.beginRound(); }
 
   beginRound() {
     this.active = null;
     this.chunks = 0;
+    this.tops = 0;
+    this.secondTop = 0;
+    this.thirdTop = 0;
     this.trees = 0;
     this.thirdChunk = 0;
     this.birdies = 0;
@@ -124,6 +128,7 @@ export class ShotNarration {
     const surface = round ? surfaceAt(round.hole, end) : practice.surfaceAt(practice.ball);
     const chunk = impact?.kind === 'chunk' && practice.turfAt != null;
     this.chunks = chunk ? this.chunks + 1 : 0;
+    this.tops = impact?.kind === 'top' ? this.tops + 1 : 0;
     this.trees = round?.hitTree ? this.trees + 1 : 0;
     // Alternate at the third chunk of each distinct streak, even when a hazard wins the line.
     const third = chunk && this.chunks === 3 ? (this.thirdChunk++ % 2 ? 'chunk-delving' : 'chunk-dwarf') : null;
@@ -156,6 +161,8 @@ export class ShotNarration {
       return reaction(this.chunks === 1 ? 'chunk-first' : this.chunks === 2 ? 'chunk-second' : 'chunk-later');
     }
     if (!impact) return reaction('whiff');
+    if (this.tops === 2) return reaction(SECOND_TOP_LINES[this.secondTop++ % SECOND_TOP_LINES.length], true);
+    if (this.tops === 3) return reaction(THIRD_TOP_LINES[this.thirdTop++ % THIRD_TOP_LINES.length], true);
     if (shot.attempted && !spell) return reaction('miscast');
     if (spell?.type === 'royal-flush' && spell.purity < ROYAL_FLUSH_PURITY) return reaction('royal-fail');
     if (impact.kind === 'top') return reaction(shot.surface === 'rough' && atMost(distance(shot.start, end), 16 * FOOT) ? 'rough-top' : 'top');

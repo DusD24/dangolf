@@ -89,8 +89,39 @@ test('rough top uses actual travel and the inclusive sixteen-foot boundary', () 
   const state = setup();
   const start = { x: 20, z: 30 };
   assert.equal(id(state, { kind: 'top', start, end: { x: 20 + 16 * FT, z: 30 } }), 'rough-top');
+  state.narration.beginRound();
   assert.equal(id(state, { kind: 'top', start, end: { x: 20 + 16 * FT + .001, z: 30 } }), 'top');
+  state.narration.beginRound();
   assert.equal(id(state, { kind: 'top', start: { x: 0, z: 0 }, end: { x: 1, z: 0 } }), 'top');
+});
+
+test('top streaks rotate all approved second and third lines and reset on any other shot', () => {
+  const state = setup();
+  const seconds = ['top-second-discussed', 'top-second-underside', 'top-second-mortal'];
+  const thirds = ['top-third-bowling', 'top-third-putter', 'top-third-sphere'];
+  for (let streak = 0; streak < 4; streak++) {
+    assert.equal(id(state, { kind: 'top' }), 'top');
+    assert.deepEqual(result(state, { kind: 'top' }), { id: seconds[streak % 3], important: true });
+    assert.deepEqual(result(state, { kind: 'top' }), { id: thirds[streak % 3], important: true });
+    assert.equal(id(state, { kind: 'top' }), 'top');
+    result(state, { kind: streak % 2 ? 'chunk' : null });
+  }
+  state.narration.beginRound();
+  id(state, { kind: 'top' });
+  assert.equal(id(state, { kind: 'top' }), seconds[0]);
+});
+
+test('rough tops join the streak, cancellation preserves it, and hazards keep their own reaction', () => {
+  const state = setup();
+  const options = { kind: 'top', start: { x: 20, z: 30 }, end: { x: 21, z: 30 } };
+  assert.equal(id(state, options), 'rough-top');
+  state.narration.beginShot(state.round, state.practice);
+  state.narration.cancelShot();
+  assert.equal(id(state, options), 'top-second-discussed');
+  assert.equal(id(state, { ...options, notice: 'Water · +1 penalty' }), 'water');
+  assert.equal(id(state, options), 'rough-top');
+  result(state, { club: 'putter' });
+  assert.equal(id(state, options), 'rough-top');
 });
 
 test('whiff and miscast are specific; a plain clean snap and mana return are fallbacks', () => {
